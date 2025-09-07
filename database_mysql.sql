@@ -9,6 +9,7 @@ CREATE TABLE accounts (
     last_name VARCHAR(100) NOT NULL,
     account_type ENUM('admin', 'employee') NOT NULL,
     status ENUM('active', 'inactive', 'suspended') DEFAULT 'active',
+    allowed_modules JSON DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     last_login TIMESTAMP NULL,

@@ -14,11 +14,98 @@ import SystemSettingsPage from './pages/SystemSettingsPage'
 import HelpSupportPage from './pages/HelpSupportPage'
 import AuthContainer from './pages/AuthContainer'
 
-function Layout({ children, user: userProp }) {
+// Protected Route component
+function ProtectedRoute({ children, requiredModule, user }) {
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    // Admin can access everything
+    if (user?.account_type === 'admin') {
+      return
+    }
+
+    // Special case for users module - admin only
+    if (requiredModule === 'users') {
+      navigate('/')
+      return
+    }
+
+    // Check if user has access to this module
+    const userModules = user?.allowed_modules || []
+    if (requiredModule && !userModules.includes(requiredModule)) {
+      // Redirect to dashboard or first available module
+      const firstAvailableModule = userModules[0]
+      if (firstAvailableModule === 'dashboard') {
+        navigate('/')
+      } else {
+        // Map module to route
+        const moduleRoutes = {
+          'sales': '/sales',
+          'purchase-orders': '/purchase-orders',
+          'returns': '/returns',
+          'inventory': '/inventory',
+          'customers': '/customers',
+          'suppliers': '/suppliers'
+        }
+        navigate(moduleRoutes[firstAvailableModule] || '/')
+      }
+    }
+  }, [user, requiredModule, navigate])
+
+  // Admin can access everything
+  if (user?.account_type === 'admin') {
+    return children
+  }
+
+  // Special case for users module - admin only
+  if (requiredModule === 'users') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md mx-auto text-center">
+          <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5C2.57 17.333 3.53 19 5.07 19z" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h1>
+          <p className="text-gray-600">Only administrators can manage users.</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Check if user has access to this module
+  const userModules = user?.allowed_modules || []
+  console.log('ProtectedRoute check:', { requiredModule, userModules, hasAccess: userModules.includes(requiredModule) })
+  
+  if (requiredModule && !userModules.includes(requiredModule)) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md mx-auto text-center">
+          <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5C2.57 17.333 3.53 19 5.07 19z" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h1>
+          <p className="text-gray-600">You don't have permission to access this module. Contact your administrator to request access.</p>
+        </div>
+      </div>
+    )
+  }
+
+  return children
+}
+
+function Layout({ children, user: userProp, onLogout }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [notifications, setNotifications] = useState([])
   const [showNotifications, setShowNotifications] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
+  const [user, setUser] = useState(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const location = useLocation()
+  const navigate = useNavigate()
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -43,10 +130,6 @@ function Layout({ children, user: userProp }) {
       }
     }
   }, [showNotifications, showProfileMenu])
-  const [user, setUser] = useState(null)
-  const location = useLocation()
-  const navigate = useNavigate()
-
 
   useEffect(() => {
     loadNotifications()
@@ -55,28 +138,18 @@ function Layout({ children, user: userProp }) {
   const loadNotifications = async () => {
     try {
       // TODO: Replace with actual API call when backend route is ready
-      // const response = await fetch('/api/notifications', {
-      //   headers: {
-      //     'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-      //   }
-      // })
-      // 
-      // if (response.ok) {
-      //   const data = await response.json()
-      //   setNotifications(data.data || [])
-      // }
-
-      // For now, load notifications from localStorage or keep empty until API is ready
       setNotifications([])
     } catch (error) {
       console.error('Error loading notifications:', error)
     }
   }
 
-  const navigationItems = [
+  // Define all available navigation items
+  const allNavigationItems = [
     {
       name: 'Dashboard',
       href: '/',
+      module: 'dashboard',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2v10z" />
@@ -88,6 +161,7 @@ function Layout({ children, user: userProp }) {
     {
       name: 'Sales',
       href: '/sales',
+      module: 'sales',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -99,6 +173,7 @@ function Layout({ children, user: userProp }) {
     {
       name: 'Purchase Orders',
       href: '/purchase-orders',
+      module: 'purchase-orders',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
@@ -110,6 +185,7 @@ function Layout({ children, user: userProp }) {
     {
       name: 'Inventory',
       href: '/inventory',
+      module: 'inventory',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
@@ -122,6 +198,7 @@ function Layout({ children, user: userProp }) {
     {
       name: 'Returns & Warranty',
       href: '/returns',
+      module: 'returns',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14V5a2 2 0 00-2-2H6a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2z" />
@@ -134,6 +211,7 @@ function Layout({ children, user: userProp }) {
     {
       name: 'Customers',
       href: '/customers',
+      module: 'customers',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -145,6 +223,7 @@ function Layout({ children, user: userProp }) {
     {
       name: 'Suppliers',
       href: '/suppliers',
+      module: 'suppliers',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
@@ -156,6 +235,7 @@ function Layout({ children, user: userProp }) {
     {
       name: 'Users',
       href: '/users',
+      module: 'users', // Special case - only admins can access
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
@@ -166,20 +246,39 @@ function Layout({ children, user: userProp }) {
     }
   ]
 
+  // Filter navigation items based on user permissions
+  const getNavigationItems = () => {
+    const currentUser = userProp || user
+    if (!currentUser) return []
+
+    // Admin can see all modules
+    if (currentUser.account_type === 'admin') {
+      return allNavigationItems
+    }
+
+    // Employee can only see modules they have access to
+    const userModules = currentUser.allowed_modules || ['dashboard']
+    return allNavigationItems.filter(item => 
+      userModules.includes(item.module) && item.module !== 'users' // Users module is admin-only
+    )
+  }
+
+  const navigationItems = getNavigationItems()
+
   const handleSignOut = async () => {
-    try {
-      await authAPI.logout()
-      // Clear user state and redirect without page reload
-      setUser(null)
-      setIsAuthenticated(false)
-      navigate('/')
-    } catch (error) {
-      console.error('Logout error:', error)
-      // Even if logout fails on server, clear local state
-      localStorage.removeItem('authToken')
-      setUser(null)
-      setIsAuthenticated(false)
-      navigate('/')
+    if (onLogout) {
+      await onLogout()
+    } else {
+      // Fallback in case onLogout is not provided
+      try {
+        await authAPI.logout()
+      } catch (error) {
+        console.error('Logout error:', error)
+      } finally {
+        localStorage.removeItem('authToken')
+        navigate('/')
+        window.location.reload()
+      }
     }
   }
 
@@ -242,14 +341,6 @@ function Layout({ children, user: userProp }) {
   const markNotificationAsRead = async (notificationId) => {
     try {
       // TODO: Replace with actual API call when backend route is ready
-      // await fetch(`/api/notifications/${notificationId}/read`, {
-      //   method: 'PUT',
-      //   headers: {
-      //     'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-      //   }
-      // })
-
-      // Update local state
       setNotifications(prev => 
         prev.map(n => n.id === notificationId ? { ...n, unread: false } : n)
       )
@@ -257,17 +348,6 @@ function Layout({ children, user: userProp }) {
       console.error('Error marking notification as read:', error)
     }
   }
-
-  // Close dropdowns when clicking outside
-  useEffect(() => {
-    const handleClickOutside = () => {
-      setShowNotifications(false)
-      setShowProfileMenu(false)
-    }
-    
-    document.addEventListener('click', handleClickOutside)
-    return () => document.removeEventListener('click', handleClickOutside)
-  }, [])
 
   // Display user role properly
   const getUserRole = () => {
@@ -559,7 +639,6 @@ function Layout({ children, user: userProp }) {
           </div>
         </header>
 
-
         {/* Main content area */}
         <main className="flex-1 overflow-y-auto">
           {children}
@@ -582,11 +661,17 @@ function Shell() {
     try {
       const token = localStorage.getItem('authToken')
       if (!token) {
+        console.log('No auth token found')
         setLoading(false)
         return
       }
 
+      console.log('Checking auth status with token')
       const data = await authAPI.getCurrentUser()
+      console.log('Auth check response:', data)
+      console.log('User data from auth check:', data.user)
+      console.log('User modules from auth check:', data.user?.allowed_modules)
+      
       setUser(data.user)
       setIsAuthenticated(true)
     } catch (error) {
@@ -598,11 +683,22 @@ function Shell() {
     }
   }
 
-  // Pass user data down to Layout component
-  const LayoutWithUser = ({ children }) => {
-    return React.cloneElement(<Layout />, { user }, children)
+  const handleLogout = async () => {
+    try {
+      await authAPI.logout()
+      console.log('Logout successful, clearing auth state')
+    } catch (error) {
+      console.error('Logout API error:', error)
+      // Continue with logout even if API fails
+    } finally {
+      // Always clear local state regardless of API response
+      localStorage.removeItem('authToken')
+      setUser(null)
+      setIsAuthenticated(false)
+      console.log('Auth state cleared, user should be redirected to login')
+    }
   }
-  
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -617,19 +713,51 @@ function Shell() {
   if (!isAuthenticated) return <AuthContainer onLogin={checkAuthStatus} />
 
   return (
-    <Layout user={user}>
+    <Layout user={user} onLogout={handleLogout}>
       <Routes>
-        <Route path="/" element={<DashboardPage/>} />
-        <Route path="/sales" element={<SalesPage/>} />
-        <Route path="/purchase-orders" element={<PurchaseOrdersPage/>} />
-        <Route path="/returns" element={<ReturnsPage/>} />
-        <Route path="/inventory" element={<InventoryPage/>} />
-        <Route path="/customers" element={<CustomersPage/>} />
-        <Route path="/suppliers" element={<SuppliersPage/>} />
-        <Route path="/users" element={<UsersPage/>} />
-        <Route path="/profile-settings" element={<ProfileSettingsPage/>} />
-        <Route path="/system-settings" element={<SystemSettingsPage/>} />
-        <Route path="/help-support" element={<HelpSupportPage/>} />
+        <Route path="/" element={
+          <ProtectedRoute requiredModule="dashboard" user={user}>
+            <DashboardPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/sales" element={
+          <ProtectedRoute requiredModule="sales" user={user}>
+            <SalesPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/purchase-orders" element={
+          <ProtectedRoute requiredModule="purchase-orders" user={user}>
+            <PurchaseOrdersPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/returns" element={
+          <ProtectedRoute requiredModule="returns" user={user}>
+            <ReturnsPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/inventory" element={
+          <ProtectedRoute requiredModule="inventory" user={user}>
+            <InventoryPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/customers" element={
+          <ProtectedRoute requiredModule="customers" user={user}>
+            <CustomersPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/suppliers" element={
+          <ProtectedRoute requiredModule="suppliers" user={user}>
+            <SuppliersPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/users" element={
+          <ProtectedRoute requiredModule="users" user={user}>
+            <UsersPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/profile-settings" element={<ProfileSettingsPage />} />
+        <Route path="/system-settings" element={<SystemSettingsPage />} />
+        <Route path="/help-support" element={<HelpSupportPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

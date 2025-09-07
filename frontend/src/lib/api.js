@@ -53,11 +53,11 @@ export const authAPI = {
     return data;
   },
 
-  // Register new user (admin/employee)
+  // Register new user (admin only)
   register: async (userData) => {
     const response = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
-      headers: createHeaders(),
+      headers: createHeaders(true), // Include auth for admin-only endpoint
       body: JSON.stringify(userData),
     });
 
@@ -84,6 +84,51 @@ export const authAPI = {
     // Remove token from localStorage regardless of response
     localStorage.removeItem('authToken');
     
+    return handleResponse(response);
+  },
+};
+
+// User Management API calls (admin only)
+export const usersAPI = {
+  // Get all users
+  getAll: async () => {
+    const response = await fetch(`${API_BASE_URL}/auth/users`, {
+      method: 'GET',
+      headers: createHeaders(true),
+    });
+
+    return handleResponse(response);
+  },
+
+  // Create new user
+  create: async (userData) => {
+    const response = await fetch(`${API_BASE_URL}/auth/register`, {
+      method: 'POST',
+      headers: createHeaders(true),
+      body: JSON.stringify(userData),
+    });
+
+    return handleResponse(response);
+  },
+
+  // Update user
+  update: async (userId, userData) => {
+    const response = await fetch(`${API_BASE_URL}/auth/users/${userId}`, {
+      method: 'PUT',
+      headers: createHeaders(true),
+      body: JSON.stringify(userData),
+    });
+
+    return handleResponse(response);
+  },
+
+  // Delete user
+  delete: async (userId) => {
+    const response = await fetch(`${API_BASE_URL}/auth/users/${userId}`, {
+      method: 'DELETE',
+      headers: createHeaders(true),
+    });
+
     return handleResponse(response);
   },
 };
@@ -115,6 +160,7 @@ export const ordersAPI = {
 
 export default {
   auth: authAPI,
+  users: usersAPI,
   health: healthAPI,
   customers: customersAPI,
   inventory: inventoryAPI,

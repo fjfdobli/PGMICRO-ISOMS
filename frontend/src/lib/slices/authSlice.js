@@ -1,6 +1,17 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { authAPI } from '../api';
 
+// Available modules in the system
+const AVAILABLE_MODULES = [
+  'dashboard',
+  'sales', 
+  'purchase-orders',
+  'returns',
+  'inventory',
+  'customers',
+  'suppliers'
+];
+
 // Async thunk for login
 export const loginUser = createAsyncThunk(
   'auth/login',
@@ -14,7 +25,7 @@ export const loginUser = createAsyncThunk(
   }
 );
 
-// Async thunk for registration
+// Async thunk for registration (admin only)
 export const registerUser = createAsyncThunk(
   'auth/register',
   async (userData, { rejectWithValue }) => {
@@ -79,6 +90,32 @@ const initialState = {
   loading: false,
   error: null,
   token: localStorage.getItem('authToken'),
+  availableModules: AVAILABLE_MODULES,
+};
+
+// Helper function to ensure user has valid modules
+const normalizeUserModules = (user) => {
+  if (!user) return null;
+  
+  let allowedModules = user.allowed_modules || [];
+  
+  // Admin gets all modules
+  if (user.account_type === 'admin') {
+    allowedModules = AVAILABLE_MODULES;
+  } else {
+    // Ensure employee has at least dashboard access
+    if (!allowedModules.includes('dashboard')) {
+      allowedModules = ['dashboard', ...allowedModules];
+    }
+    
+    // Filter out invalid modules
+    allowedModules = allowedModules.filter(module => AVAILABLE_MODULES.includes(module));
+  }
+  
+  return {
+    ...user,
+    allowed_modules: allowedModules
+  };
 };
 
 const authSlice = createSlice({
@@ -89,6 +126,7 @@ const authSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
+    
     // Reset auth state
     resetAuth: (state) => {
       state.user = null;
@@ -97,6 +135,29 @@ const authSlice = createSlice({
       state.error = null;
       state.token = null;
       localStorage.removeItem('authToken');
+    },
+    
+    // Update user modules (for real-time updates from admin changes)
+    updateUserModules: (state, action) => {
+      if (state.user && state.user.id === action.payload.userId) {
+        state.user.allowed_modules = action.payload.modules;
+      }
+    },
+    
+    // Check if user has access to a specific module
+    checkModuleAccess: (state, action) => {
+      const module = action.payload;
+      if (!state.user || !state.isAuthenticated) {
+        return false;
+      }
+      
+      // Admin has access to everything
+      if (state.user.account_type === 'admin') {
+        return true;
+      }
+      
+      // Check if user has access to the specific module
+      return state.user.allowed_modules?.includes(module) || false;
     },
   },
   extraReducers: (builder) => {
@@ -109,7 +170,7 @@ const authSlice = createSlice({
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
         state.isAuthenticated = true;
-        state.user = action.payload.user;
+        state.user = normalizeUserModules(action.payload.user);
         state.token = action.payload.token;
         state.error = null;
       })
@@ -145,7 +206,7 @@ const authSlice = createSlice({
       .addCase(getCurrentUser.fulfilled, (state, action) => {
         state.loading = false;
         state.isAuthenticated = true;
-        state.user = action.payload.user;
+        state.user = normalizeUserModules(action.payload.user);
         state.error = null;
       })
       .addCase(getCurrentUser.rejected, (state, action) => {
@@ -164,7 +225,7 @@ const authSlice = createSlice({
       .addCase(checkAuthStatus.fulfilled, (state, action) => {
         state.loading = false;
         state.isAuthenticated = true;
-        state.user = action.payload.user;
+        state.user = normalizeUserModules(action.payload.user);
         state.error = null;
       })
       .addCase(checkAuthStatus.rejected, (state, action) => {
@@ -198,7 +259,7 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearError, resetAuth } = authSlice.actions;
+export const { clearError, resetAuth, updateUserModules, checkModuleAccess } = authSlice.actions;
 
 // Selectors
 export const selectAuth = (state) => state.auth;
@@ -206,5 +267,63 @@ export const selectUser = (state) => state.auth.user;
 export const selectIsAuthenticated = (state) => state.auth.isAuthenticated;
 export const selectAuthLoading = (state) => state.auth.loading;
 export const selectAuthError = (state) => state.auth.error;
+export const selectAvailableModules = (state) => state.auth.availableModules;
+
+// Helper selectors for module access
+export const selectUserModules = (state) => state.auth.user?.allowed_modules || [];
+export const selectIsAdmin = (state) => state.auth.user?.account_type === 'admin';
+
+// Module access selector factory
+export const selectHasModuleAccess = (module) => (state) => {
+  const user = state.auth.user;
+  if (!user || !state.auth.isAuthenticated) return false;
+  
+  // Admin has access to everything
+  if (user.account_type === 'admin') return true;
+  
+  if (module === 'users') return user.account_type === 'admin';
+  
+  return user.allowed_modules?.includes(module) || false;
+};
+
+export const selectAccessibleNavigation = (state) => {
+  const user = state.auth.user;
+  if (!user || !state.auth.isAuthenticated) return [];
+  
+  const allNavItems = [
+    { id: 'dashboard', name: 'Dashboard', path: '/', module: 'dashboard' },
+    { id: 'sales', name: 'Sales', path: '/sales', module: 'sales' },
+    { id: 'purchase-orders', name: 'Purchase Orders', path: '/purchase-orders', module: 'purchase-orders' },
+    { id: 'returns', name: 'Returns & Warranty', path: '/returns', module: 'returns' },
+    { id: 'inventory', name: 'Inventory', path: '/inventory', module: 'inventory' },
+    { id: 'customers', name: 'Customers', path: '/customers', module: 'customers' },
+    { id: 'suppliers', name: 'Suppliers', path: '/suppliers', module: 'suppliers' },
+    { id: 'users', name: 'Users', path: '/users', module: 'users' }
+  ];
+  
+  if (user.account_type === 'admin') {
+    return allNavItems;
+  }
+  
+  const userModules = user.allowed_modules || ['dashboard'];
+  return allNavItems.filter(item => 
+    userModules.includes(item.module) && item.module !== 'users'
+  );
+};
+
+export const validateModules = (modules, userType = 'employee') => {
+  if (!Array.isArray(modules)) return ['dashboard'];
+  
+  if (userType === 'admin') {
+    return AVAILABLE_MODULES;
+  }
+  
+  const validModules = modules.filter(module => AVAILABLE_MODULES.includes(module));
+  if (!validModules.includes('dashboard')) {
+    validModules.unshift('dashboard');
+  }
+  
+  return validModules;
+};
 
 export default authSlice.reducer;

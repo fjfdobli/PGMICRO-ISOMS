@@ -4,13 +4,13 @@ import { authAPI } from '../lib/api'
 import Button from './Button'
 
 const tabs = [
-  { to: '/customers', label: 'Customers' },
-  { to: '/suppliers', label: 'Suppliers' },
-  { to: '/', label: 'Dashboard' },
-  { to: '/sales', label: 'Sales' },
-  { to: '/purchase-orders', label: 'Purchase Orders' },
-  { to: '/returns', label: 'Return/Warranty' },
-  { to: '/inventory', label: 'Inventory' },
+  { to: '/', label: 'Dashboard', module: 'dashboard' },
+  { to: '/customers', label: 'Customers', module: 'customers' },
+  { to: '/suppliers', label: 'Suppliers', module: 'suppliers' },
+  { to: '/sales', label: 'Sales', module: 'sales' },
+  { to: '/purchase-orders', label: 'Purchase Orders', module: 'purchase-orders' },
+  { to: '/returns', label: 'Return/Warranty', module: 'returns' },
+  { to: '/inventory', label: 'Inventory', module: 'inventory' },
 ]
 
 export default function Navbar() {
@@ -31,6 +31,16 @@ export default function Navbar() {
   }
 
   const isAdmin = user?.account_type === 'admin'
+  
+  // Get user's allowed modules
+  const userModules = user?.allowed_modules || []
+  console.log('User modules in navbar:', userModules)
+  
+  // Filter tabs based on user permissions
+  const allowedTabs = tabs.filter(tab => {
+    if (isAdmin) return true // Admin can see everything
+    return userModules.includes(tab.module)
+  })
 
   const onLogout = async () => {
     try {
@@ -52,7 +62,7 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-14">
           <Link to="/" className="font-bold text-[var(--color-brand)]">PG Micro ISOMS</Link>
           <nav className="flex gap-4 items-center">
-            {tabs.map(t => (
+            {allowedTabs.map(t => (
               <NavLink
                 key={t.to}
                 to={t.to}
