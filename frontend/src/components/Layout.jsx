@@ -38,7 +38,6 @@ export default function Layout({ children }) {
       navigate('/')
     } catch (error) {
       console.error('Logout error:', error)
-      // Even if logout fails on server, clear local state
       localStorage.removeItem('authToken')
       setUser(null)
       navigate('/')
@@ -51,7 +50,6 @@ export default function Layout({ children }) {
   return (
     <div className="body-shell">
       <div className="flex">
-        {/* Sidebar */}
         <aside className="hidden md:block w-[var(--sidebar-w)] shrink-0 border-r bg-white">
           <div className="px-4 py-4">
             <div className="text-xl font-bold text-[var(--color-brand)]">PG Micro ISOMS</div>
@@ -68,9 +66,7 @@ export default function Layout({ children }) {
           </nav>
         </aside>
 
-        {/* Main */}
         <div className="flex-1 min-w-0">
-          {/* Topbar */}
           <header className="bg-white border-b">
             <div className="max-w-7xl mx-auto px-4 h-14 flex items-center">
               <div className="md:hidden font-bold text-[var(--color-brand)]">PG Micro ISOMS</div>
@@ -91,7 +87,6 @@ export default function Layout({ children }) {
             </div>
           </header>
 
-          {/* Content */}
           <main className="max-w-7xl mx-auto p-4">
             {children}
           </main>

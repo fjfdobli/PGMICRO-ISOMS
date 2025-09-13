@@ -1,6 +1,6 @@
 import React from 'react'
 import { useState, useEffect } from 'react'
-import { Users, UserPlus, Edit2, Trash2, Mail, Calendar, Shield, Eye, EyeOff, Plus, Search, Filter, MoreVertical, X, AlertTriangle, CheckCircle, Lock } from 'lucide-react'
+import { Users, UserPlus, Edit2, Mail, Calendar, Shield, Eye, EyeOff, Plus, Search, Filter, MoreVertical, X, AlertTriangle, CheckCircle, Lock, UserCheck, UserX, Clock, Ban } from 'lucide-react'
 import Card from '../components/Card'
 import Button from '../components/Button'
 import { usersAPI, authAPI } from '../lib/api'
@@ -23,6 +23,8 @@ const ROLES = [
 const STATUS_OPTIONS = [
   { value: 'active', label: 'Active' },
   { value: 'inactive', label: 'Inactive' },
+  { value: 'suspended', label: 'Suspended' },
+  { value: 'pending', label: 'Pending Approval' },
 ]
 
 const Modal = ({ isOpen, onClose, title, children, size = "md" }) => {
@@ -112,9 +114,19 @@ export default function UsersPage() {
   const [showViewModal, setShowViewModal] = useState(false)
   const [editingUser, setEditingUser] = useState(null)
   const [viewingUser, setViewingUser] = useState(null)
-  const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [approveConfirm, setApproveConfirm] = useState(null)
+  const [suspendConfirm, setSuspendConfirm] = useState(null)
+  const [showSuspendModal, setShowSuspendModal] = useState(false)
+  const [suspendingUser, setSuspendingUser] = useState(null)
+  const [suspensionReason, setSuspensionReason] = useState('')
   const [loading, setLoading] = useState(true)
   const [availableModules, setAvailableModules] = useState([])
+  const [showPendingOnly, setShowPendingOnly] = useState(false)
+  const [showApprovalModal, setShowApprovalModal] = useState(false)
+  const [showRejectionModal, setShowRejectionModal] = useState(false)
+  const [showSuspensionModal, setShowSuspensionModal] = useState(false)
+  const [showUnsuspensionModal, setShowUnsuspensionModal] = useState(false)
+  const [pendingActionUser, setPendingActionUser] = useState(null)
 
   const loadUsers = async () => {
     setLoading(true)
@@ -278,13 +290,6 @@ export default function UsersPage() {
     }
   }
 
-  const handleDeleteUser = (userId) => {
-    const freshUser = users.find(u => u.id === userId)
-    if (freshUser) {
-      setDeleteConfirm(freshUser)
-    }
-  }
-
   const handleEdit = async (formData) => {
     try {
       console.log('Updating user with data:', formData)
@@ -348,15 +353,100 @@ export default function UsersPage() {
     }
   }
 
-  const handleDelete = async (user) => {
+  const handleApproveUser = (userId) => {
+    const user = users.find(u => u.id === userId)
+    if (user) {
+      setPendingActionUser(user)
+      setShowApprovalModal(true)
+      console.log('Set showApprovalModal to true')
+    }
+  }
+
+  const handleSuspendUser = (userId) => {
+    const user = users.find(u => u.id === userId)
+    if (user) {
+      setPendingActionUser(user)
+      setShowSuspensionModal(true)
+    }
+  }
+
+  const handleUnsuspendUser = (userId) => {
+    const user = users.find(u => u.id === userId)
+    if (user) {
+      setPendingActionUser(user)
+      setShowUnsuspensionModal(true)
+    }
+  }
+
+  const handleRejectUser = (userId) => {
+    const user = users.find(u => u.id === userId)
+    if (user) {
+      setPendingActionUser(user)
+      setShowRejectionModal(true)
+    }
+  }
+
+  // Confirmation handlers
+  const confirmApproval = async () => {
+    console.log('confirmApproval called, pendingActionUser:', pendingActionUser)
+    if (!pendingActionUser) return
+    
     try {
-      await usersAPI.delete(user.id)
-      setDeleteConfirm(null)
-      alert('User deleted successfully!')
-      await loadUsers()
+      console.log('Calling usersAPI.approve with userId:', pendingActionUser.id)
+      await usersAPI.approve(pendingActionUser.id)
+      console.log('Approval successful')
+      setShowApprovalModal(false)
+      setPendingActionUser(null)
+      await loadUsers() // Refresh the users list
     } catch (error) {
-      console.error('Error deleting user:', error)
-      alert('Error deleting user: ' + error.message)
+      console.error('Failed to approve user:', error)
+      alert('Error approving user: ' + error.message)
+    }
+  }
+
+  const confirmRejection = async () => {
+    console.log('confirmRejection called, pendingActionUser:', pendingActionUser)
+    if (!pendingActionUser) return
+    
+    try {
+      console.log('Calling usersAPI.reject with userId:', pendingActionUser.id)
+      await usersAPI.reject(pendingActionUser.id)
+      console.log('Rejection successful')
+      setShowRejectionModal(false)
+      setPendingActionUser(null)
+      await loadUsers() // Refresh the users list
+    } catch (error) {
+      console.error('Failed to reject user:', error)
+      alert('Error rejecting user: ' + error.message)
+    }
+  }
+
+  const confirmSuspension = async () => {
+    if (!pendingActionUser || !suspensionReason.trim()) return
+    
+    try {
+      await usersAPI.suspend(pendingActionUser.id, suspensionReason)
+      setShowSuspensionModal(false)
+      setPendingActionUser(null)
+      setSuspensionReason('')
+      await loadUsers() // Refresh the users list
+    } catch (error) {
+      console.error('Failed to suspend user:', error)
+      alert('Error suspending user: ' + error.message)
+    }
+  }
+
+  const confirmUnsuspension = async () => {
+    if (!pendingActionUser) return
+    
+    try {
+      await usersAPI.unsuspend(pendingActionUser.id)
+      setShowUnsuspensionModal(false)
+      setPendingActionUser(null)
+      await loadUsers() // Refresh the users list
+    } catch (error) {
+      console.error('Failed to unsuspend user:', error)
+      alert('Error unsuspending user: ' + error.message)
     }
   }
 
@@ -368,6 +458,8 @@ export default function UsersPage() {
   const adminUsers = users.filter(u => u.account_type === 'admin').length
   const employeeUsers = users.filter(u => u.account_type === 'employee').length
   const activeUsers = users.filter(u => u.status === 'active').length
+  const pendingUsers = users.filter(u => u.status === 'pending').length
+  const suspendedUsers = users.filter(u => u.status === 'suspended').length
 
   if (!canManageUsers) {
     return (
@@ -417,7 +509,7 @@ export default function UsersPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
             <div className="flex items-center">
               <div className="p-3 bg-blue-100 rounded-lg">
@@ -456,16 +548,54 @@ export default function UsersPage() {
           
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
             <div className="flex items-center">
-              <div className="p-3 bg-orange-100 rounded-lg">
-                <Users className="w-6 h-6 text-orange-600" />
+              <div className="p-3 bg-yellow-100 rounded-lg">
+                <Clock className="w-6 h-6 text-yellow-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Employees</p>
-                <p className="text-2xl font-bold text-gray-900">{employeeUsers}</p>
+                <p className="text-sm font-medium text-gray-600">Pending Requests</p>
+                <p className="text-2xl font-bold text-gray-900">{pendingUsers}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+            <div className="flex items-center">
+              <div className="p-3 bg-red-100 rounded-lg">
+                <Ban className="w-6 h-6 text-red-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Suspended</p>
+                <p className="text-2xl font-bold text-gray-900">{suspendedUsers}</p>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Quick Actions for Pending Requests */}
+        {pendingUsers > 0 && canManageUsers && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Clock className="w-5 h-5 text-yellow-600 mr-2" />
+                <div>
+                  <h3 className="font-semibold text-yellow-800">Pending Access Requests</h3>
+                  <p className="text-yellow-700 text-sm">
+                    {pendingUsers} user{pendingUsers !== 1 ? 's' : ''} waiting for approval
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setStatusFilter('pending')
+                  setShowPendingOnly(true)
+                }}
+                className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors font-medium"
+              >
+                Review Requests
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Search and Filters */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
@@ -508,6 +638,8 @@ export default function UsersPage() {
                   <option value="">All Status</option>
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
+                  <option value="pending">Pending Approval</option>
+                  <option value="suspended">Suspended</option>
                 </select>
               </div>
             </div>
@@ -580,8 +712,12 @@ export default function UsersPage() {
                       user={user}
                       onView={() => handleViewUser(user.id)}
                       onEdit={() => handleEditUser(user.id)}
-                      onDelete={() => handleDeleteUser(user.id)}
+                      onApprove={() => handleApproveUser(user.id)}
+                      onReject={() => handleRejectUser(user.id)}
+                      onSuspend={() => handleSuspendUser(user.id)}
+                      onUnsuspend={() => handleUnsuspendUser(user.id)}
                       currentUserEmail={currentUser?.email}
+                      canManageUsers={currentUser?.account_type === 'admin'}
                     />
                   ))
                 )}
@@ -600,7 +736,6 @@ export default function UsersPage() {
             setShowViewModal(false)
           }}
           onEdit={() => handleEditUser(viewingUser.id)}
-          onDelete={() => handleDeleteUser(viewingUser.id)}
           currentUserEmail={currentUser?.email}
         />
       )}
@@ -638,15 +773,174 @@ export default function UsersPage() {
         />
       </Modal>
 
-      {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
-        isOpen={!!deleteConfirm}
-        onClose={() => setDeleteConfirm(null)}
-        onConfirm={() => handleDelete(deleteConfirm)}
-        title="Delete User"
-        message={`Are you sure you want to delete "${deleteConfirm?.first_name} ${deleteConfirm?.last_name}"? This action cannot be undone.`}
-        type="danger"
-      />
+      {/* Approval Modal */}
+      {showApprovalModal && (
+        <Modal isOpen={showApprovalModal} onClose={() => setShowApprovalModal(false)} title="Approve User">
+          <div className="p-6">
+            <div className="flex items-center mb-6">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mr-4">
+                <UserCheck className="w-6 h-6 text-green-600" />
+              </div>
+              <div>
+                <p className="text-gray-600">Grant access to the system</p>
+              </div>
+            </div>
+            
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-800">
+                This user will be granted access to the system and can start using their assigned modules.
+              </p>
+            </div>
+
+            <div className="flex space-x-3 justify-end">
+              <button
+                onClick={() => setShowApprovalModal(false)}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmApproval}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
+              >
+                <UserCheck className="w-4 h-4 mr-2" />
+                Approve User
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Rejection Modal */}
+      {showRejectionModal && (
+        <Modal isOpen={showRejectionModal} onClose={() => setShowRejectionModal(false)} title="Reject User">
+          <div className="p-6">
+            <div className="flex items-center mb-6">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4">
+                <UserX className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <p className="text-gray-600">Deny access to the system</p>
+              </div>
+            </div>
+            
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-800">
+                This user's registration will be permanently rejected and they will not be able to access the system.
+              </p>
+            </div>
+
+            <div className="flex space-x-3 justify-end">
+              <button
+                onClick={() => setShowRejectionModal(false)}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmRejection}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center"
+              >
+                <UserX className="w-4 h-4 mr-2" />
+                Reject User
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Suspension Modal */}
+      {showSuspensionModal && (
+        <Modal isOpen={showSuspensionModal} onClose={() => setShowSuspensionModal(false)} title="Suspend User">
+          <div className="p-6">
+            <div className="flex items-center mb-6">
+              <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mr-4">
+                <Ban className="w-6 h-6 text-orange-600" />
+              </div>
+              <div>
+                <p className="text-gray-600">Temporarily disable user access</p>
+              </div>
+            </div>
+            
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Suspension Reason
+              </label>
+              <textarea
+                value={suspensionReason}
+                onChange={(e) => setSuspensionReason(e.target.value)}
+                placeholder="Enter the reason for suspension..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                rows={3}
+              />
+            </div>
+
+            <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+              <p className="text-sm text-orange-800">
+                This user will lose access to the system until the suspension is lifted.
+              </p>
+            </div>
+
+            <div className="flex space-x-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowSuspensionModal(false)
+                  setSuspensionReason('')
+                }}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmSuspension}
+                disabled={!suspensionReason.trim()}
+                className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center"
+              >
+                <Ban className="w-4 h-4 mr-2" />
+                Suspend User
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Unsuspension Modal */}
+      {showUnsuspensionModal && (
+        <Modal isOpen={showUnsuspensionModal} onClose={() => setShowUnsuspensionModal(false)} title="Unsuspend User">
+          <div className="p-6">
+            <div className="flex items-center mb-6">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mr-4">
+                <UserCheck className="w-6 h-6 text-green-600" />
+              </div>
+              <div>
+                <p className="text-gray-600">Restore user access</p>
+              </div>
+            </div>
+            
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-800">
+                This user will regain access to the system and can resume using their assigned modules.
+              </p>
+            </div>
+
+            <div className="flex space-x-3 justify-end">
+              <button
+                onClick={() => setShowUnsuspensionModal(false)}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmUnsuspension}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
+              >
+                <UserCheck className="w-4 h-4 mr-2" />
+                Unsuspend User
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }
@@ -655,6 +949,8 @@ const getStatusColor = (status) => {
   switch (status) {
     case 'active': return 'bg-green-100 text-green-800 border-green-200'
     case 'inactive': return 'bg-red-100 text-red-800 border-red-200'
+    case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+    case 'suspended': return 'bg-orange-100 text-orange-800 border-orange-200'
     default: return 'bg-gray-100 text-gray-800 border-gray-200'
   }
 }
@@ -682,7 +978,7 @@ const getModuleNames = (modules) => {
   })
 }
 
-const UserViewModal = ({ user, onClose, onEdit, onDelete, currentUserEmail }) => {
+const UserViewModal = ({ user, onClose, onEdit, currentUserEmail }) => {
   if (!user) return null
 
   const isCurrentUser = user.email === currentUserEmail
@@ -837,19 +1133,6 @@ const UserViewModal = ({ user, onClose, onEdit, onDelete, currentUserEmail }) =>
               <Edit2 className="w-4 h-4 mr-2" />
               Edit User
             </button>
-            
-            {!isCurrentUser && (
-              <button
-                onClick={() => {
-                  onDelete()
-                  onClose()
-                }}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete User
-              </button>
-            )}
           </div>
         </div>
       </div>
@@ -1308,7 +1591,7 @@ const UserForm = ({ user, onSubmit, onCancel }) => {
   )
 }
 
-const UserRow = ({ user, onEdit, onDelete, onView, currentUserEmail }) => {
+const UserRow = ({ user, onEdit, onView, onApprove, onReject, onSuspend, onUnsuspend, currentUserEmail, canManageUsers }) => {
   const [showActions, setShowActions] = useState(false)
   const isCurrentUser = user.email === currentUserEmail
 
@@ -1320,149 +1603,235 @@ const UserRow = ({ user, onEdit, onDelete, onView, currentUserEmail }) => {
     }
   }
 
-    const getStatusColor = (status) => {
-      switch (status) {
-        case 'active': return 'bg-green-100 text-green-800 border-green-200'
-        case 'inactive': return 'bg-red-100 text-red-800 border-red-200'
-        default: return 'bg-gray-100 text-gray-800 border-gray-200'
-      }
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'active': return 'bg-green-100 text-green-800 border-green-200'
+      case 'inactive': return 'bg-red-100 text-red-800 border-red-200'
+      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+      case 'suspended': return 'bg-orange-100 text-orange-800 border-orange-200'
+      default: return 'bg-gray-100 text-gray-800 border-gray-200'
     }
-  
-    const getModuleNames = (modules) => {
-      if (!modules || modules.length === 0) return ['dashboard']
-      return modules.map(moduleId => {
-        const module = AVAILABLE_MODULES.find(m => m.id === moduleId)
-        return module ? module.label : moduleId
-      })
+  }
+
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'active': return 'Active'
+      case 'inactive': return 'Inactive'
+      case 'pending': return 'Pending'
+      case 'suspended': return 'Suspended'
+      default: return status
     }
+  }
   
-    return (
-      <tr 
-        className="border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
-        onClick={onView}
-      >
-        <td className="py-4 px-4">
-          <div className="flex items-center">
-            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-              <span className="text-blue-600 font-semibold">
-                {user.first_name?.charAt(0).toUpperCase()}{user.last_name?.charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <div>
-              <div className="font-medium text-gray-900">
-                {user.first_name} {user.last_name}
-                {isCurrentUser && <span className="text-xs text-blue-600 ml-2">(You)</span>}
-              </div>
-              <div className="text-sm text-gray-500">{user.email}</div>
-            </div>
+  const getModuleNames = (modules) => {
+    if (!modules || modules.length === 0) return ['Dashboard']
+    return modules.map(moduleId => {
+      const module = AVAILABLE_MODULES.find(m => m.id === moduleId)
+      return module ? module.label : moduleId
+    })
+  }
+
+  const handleClick = (e) => {
+    // Don't trigger view if clicking on action buttons
+    if (e.target.closest('button')) {
+      return
+    }
+    onView()
+  }
+  
+  return (
+    <tr 
+      className="border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
+      onClick={handleClick}
+    >
+      <td className="py-4 px-4">
+        <div className="flex items-center">
+          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+            <span className="text-blue-600 font-semibold">
+              {user.first_name?.charAt(0).toUpperCase()}{user.last_name?.charAt(0).toUpperCase()}
+            </span>
           </div>
-        </td>
-        <td className="py-4 px-4">
-          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full border ${getRoleColor(user.account_type)}`}>
-            {user.account_type === 'admin' ? 'Admin' : 'Employee'}
-          </span>
-        </td>
-        <td className="py-4 px-4">
-          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(user.status)}`}>
-            {user.status === 'active' ? 'Active' : 'Inactive'}
-          </span>
-        </td>
-        <td className="py-4 px-4">
-          <div className="text-sm text-gray-600">
-            {user.account_type === 'admin' ? (
-              <div className="flex items-center">
-                <Shield className="w-4 h-4 mr-1 text-purple-600" />
-                <span className="text-purple-600 font-medium">All Modules</span>
-              </div>
-            ) : (
-              <div className="max-w-xs">
-                <div className="text-xs text-gray-500">
-                  {(() => {
-                    let userModules = []
-                    if (Array.isArray(user.allowed_modules)) {
-                      userModules = user.allowed_modules
-                    } else if (typeof user.allowed_modules === 'string') {
-                      try {
-                        userModules = JSON.parse(user.allowed_modules)
-                      } catch (e) {
-                        userModules = ['dashboard']
-                      }
-                    } else {
+          <div>
+            <div className="font-medium text-gray-900">
+              {user.first_name} {user.last_name}
+              {isCurrentUser && <span className="text-xs text-blue-600 ml-2">(You)</span>}
+            </div>
+            <div className="text-sm text-gray-500">{user.email}</div>
+          </div>
+        </div>
+      </td>
+      <td className="py-4 px-4">
+        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full border ${getRoleColor(user.account_type)}`}>
+          {user.account_type === 'admin' ? 'Admin' : 'Employee'}
+        </span>
+      </td>
+      <td className="py-4 px-4">
+        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(user.status)}`}>
+          {getStatusLabel(user.status)}
+        </span>
+      </td>
+      <td className="py-4 px-4">
+        <div className="text-sm text-gray-600">
+          {user.account_type === 'admin' ? (
+            <div className="flex items-center">
+              <Shield className="w-4 h-4 mr-1 text-purple-600" />
+              <span className="text-purple-600 font-medium">All Modules</span>
+            </div>
+          ) : user.status === 'pending' ? (
+            <div className="flex items-center">
+              <Clock className="w-4 h-4 mr-1 text-yellow-600" />
+              <span className="text-yellow-600 font-medium">Awaiting Approval</span>
+            </div>
+          ) : (
+            <div className="max-w-xs">
+              <div className="text-xs text-gray-500">
+                {(() => {
+                  let userModules = []
+                  if (Array.isArray(user.allowed_modules)) {
+                    userModules = user.allowed_modules
+                  } else if (typeof user.allowed_modules === 'string') {
+                    try {
+                      userModules = JSON.parse(user.allowed_modules)
+                    } catch (e) {
                       userModules = ['dashboard']
                     }
-                    return getModuleNames(userModules).join(', ')
-                  })()}
-                </div>
+                  } else {
+                    userModules = ['dashboard']
+                  }
+                  return getModuleNames(userModules).join(', ')
+                })()}
               </div>
-            )}
-          </div>
-        </td>
-        <td className="py-4 px-4">
-          <div className="text-sm text-gray-600">
-            <div className="flex items-center">
-              <Calendar className="w-4 h-4 mr-2" />
-              {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
             </div>
-          </div>
-        </td>
-        <td className="py-4 px-4">
-          <div className="text-sm text-gray-600">
-            {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
-          </div>
-        </td>
-        <td className="py-4 px-4">
-          <div className="relative">
-            <button
-              onClick={(e) => {
-                e.stopPropagation() // Prevent row click when clicking actions
-                setShowActions(!showActions)
-              }}
-              className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <MoreVertical className="w-4 h-4" />
-            </button>
-            
-            {showActions && (
-              <div className="absolute right-0 top-10 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[120px]">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onView()
-                    setShowActions(false)
-                  }}
-                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center"
-                >
-                  <Eye className="w-4 h-4 mr-2" />
-                  View
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onEdit()
-                    setShowActions(false)
-                  }}
-                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center"
-                >
-                  <Edit2 className="w-4 h-4 mr-2" />
-                  Edit
-                </button>
-                {!isCurrentUser && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onDelete()
-                      setShowActions(false)
-                    }}
-                    className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center"
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        </td>
-      </tr>
-    )
-  }
+          )}
+        </div>
+      </td>
+      <td className="py-4 px-4">
+        <div className="text-sm text-gray-500">
+          {new Date(user.created_at).toLocaleDateString()}
+        </div>
+      </td>
+      <td className="py-4 px-4">
+        <div className="text-sm text-gray-500">
+          {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
+        </div>
+      </td>
+      <td className="py-4 px-4">
+        <div className="flex items-center space-x-2">
+          {/* Pending Status Actions */}
+          {user.status === 'pending' && canManageUsers && (
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onApprove()
+                }}
+                className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
+                title="Approve User"
+              >
+                <UserCheck className="w-4 h-4" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onReject()
+                }}
+                className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                title="Reject User"
+              >
+                <UserX className="w-4 h-4" />
+              </button>
+            </>
+          )}
+
+          {/* Active/Inactive Status Actions */}
+          {(user.status === 'active' || user.status === 'inactive') && canManageUsers && !isCurrentUser && (
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onView()
+                }}
+                className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                title="View Details"
+              >
+                <Eye className="w-4 h-4" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onEdit()
+                }}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Edit User"
+              >
+                <Edit2 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onSuspend()
+                }}
+                className="p-2 text-orange-600 hover:bg-orange-100 rounded-lg transition-colors"
+                title="Suspend User"
+              >
+                <Ban className="w-4 h-4" />
+              </button>
+            </>
+          )}
+
+          {/* Suspended Status Actions */}
+          {user.status === 'suspended' && canManageUsers && (
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onView()
+                }}
+                className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                title="View Details"
+              >
+                <Eye className="w-4 h-4" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onUnsuspend()
+                }}
+                className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
+                title="Unsuspend User"
+              >
+                <UserCheck className="w-4 h-4" />
+              </button>
+            </>
+          )}
+
+          {/* Current User - Limited Actions */}
+          {isCurrentUser && (
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onView()
+                }}
+                className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                title="View Details"
+              >
+                <Eye className="w-4 h-4" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onEdit()
+                }}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Edit Profile"
+              >
+                <Edit2 className="w-4 h-4" />
+              </button>
+            </>
+          )}
+        </div>
+      </td>
+    </tr>
+  )
+}

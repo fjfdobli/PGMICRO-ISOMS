@@ -1,7 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { authAPI } from '../api';
 
-// Available modules in the system
 const AVAILABLE_MODULES = [
   'dashboard',
   'sales', 
@@ -12,7 +11,6 @@ const AVAILABLE_MODULES = [
   'suppliers'
 ];
 
-// Async thunk for login
 export const loginUser = createAsyncThunk(
   'auth/login',
   async ({ email, password }, { rejectWithValue }) => {
@@ -25,7 +23,6 @@ export const loginUser = createAsyncThunk(
   }
 );
 
-// Async thunk for registration (admin only)
 export const registerUser = createAsyncThunk(
   'auth/register',
   async (userData, { rejectWithValue }) => {
@@ -38,7 +35,6 @@ export const registerUser = createAsyncThunk(
   }
 );
 
-// Async thunk for getting current user
 export const getCurrentUser = createAsyncThunk(
   'auth/getCurrentUser',
   async (_, { rejectWithValue }) => {
@@ -51,7 +47,6 @@ export const getCurrentUser = createAsyncThunk(
   }
 );
 
-// Async thunk for logout
 export const logoutUser = createAsyncThunk(
   'auth/logout',
   async (_, { rejectWithValue }) => {
@@ -64,7 +59,6 @@ export const logoutUser = createAsyncThunk(
   }
 );
 
-// Check if user is already logged in on app start
 export const checkAuthStatus = createAsyncThunk(
   'auth/checkAuthStatus',
   async (_, { rejectWithValue }) => {
@@ -77,7 +71,6 @@ export const checkAuthStatus = createAsyncThunk(
       const response = await authAPI.getCurrentUser();
       return response;
     } catch (error) {
-      // Clear invalid token
       localStorage.removeItem('authToken');
       return rejectWithValue(error.message);
     }
@@ -93,22 +86,17 @@ const initialState = {
   availableModules: AVAILABLE_MODULES,
 };
 
-// Helper function to ensure user has valid modules
 const normalizeUserModules = (user) => {
   if (!user) return null;
   
   let allowedModules = user.allowed_modules || [];
   
-  // Admin gets all modules
   if (user.account_type === 'admin') {
     allowedModules = AVAILABLE_MODULES;
   } else {
-    // Ensure employee has at least dashboard access
     if (!allowedModules.includes('dashboard')) {
       allowedModules = ['dashboard', ...allowedModules];
     }
-    
-    // Filter out invalid modules
     allowedModules = allowedModules.filter(module => AVAILABLE_MODULES.includes(module));
   }
   
@@ -122,12 +110,10 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    // Clear error
     clearError: (state) => {
       state.error = null;
     },
     
-    // Reset auth state
     resetAuth: (state) => {
       state.user = null;
       state.isAuthenticated = false;
@@ -137,31 +123,26 @@ const authSlice = createSlice({
       localStorage.removeItem('authToken');
     },
     
-    // Update user modules (for real-time updates from admin changes)
     updateUserModules: (state, action) => {
       if (state.user && state.user.id === action.payload.userId) {
         state.user.allowed_modules = action.payload.modules;
       }
     },
     
-    // Check if user has access to a specific module
     checkModuleAccess: (state, action) => {
       const module = action.payload;
       if (!state.user || !state.isAuthenticated) {
         return false;
       }
       
-      // Admin has access to everything
       if (state.user.account_type === 'admin') {
         return true;
       }
       
-      // Check if user has access to the specific module
       return state.user.allowed_modules?.includes(module) || false;
     },
   },
   extraReducers: (builder) => {
-    // Login cases
     builder
       .addCase(loginUser.pending, (state) => {
         state.loading = true;
@@ -182,7 +163,6 @@ const authSlice = createSlice({
         state.error = action.payload;
       });
 
-    // Register cases
     builder
       .addCase(registerUser.pending, (state) => {
         state.loading = true;
@@ -191,14 +171,12 @@ const authSlice = createSlice({
       .addCase(registerUser.fulfilled, (state, action) => {
         state.loading = false;
         state.error = null;
-        // Note: Registration doesn't automatically log in the user
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });
 
-    // Get current user cases
     builder
       .addCase(getCurrentUser.pending, (state) => {
         state.loading = true;
@@ -217,7 +195,6 @@ const authSlice = createSlice({
         state.error = action.payload;
       });
 
-    // Check auth status cases
     builder
       .addCase(checkAuthStatus.pending, (state) => {
         state.loading = true;
@@ -233,11 +210,9 @@ const authSlice = createSlice({
         state.isAuthenticated = false;
         state.user = null;
         state.token = null;
-        // Don't set error for silent token checks
         state.error = null;
       });
 
-    // Logout cases
     builder
       .addCase(logoutUser.pending, (state) => {
         state.loading = true;
@@ -260,29 +235,19 @@ const authSlice = createSlice({
 });
 
 export const { clearError, resetAuth, updateUserModules, checkModuleAccess } = authSlice.actions;
-
-// Selectors
 export const selectAuth = (state) => state.auth;
 export const selectUser = (state) => state.auth.user;
 export const selectIsAuthenticated = (state) => state.auth.isAuthenticated;
 export const selectAuthLoading = (state) => state.auth.loading;
 export const selectAuthError = (state) => state.auth.error;
 export const selectAvailableModules = (state) => state.auth.availableModules;
-
-// Helper selectors for module access
 export const selectUserModules = (state) => state.auth.user?.allowed_modules || [];
 export const selectIsAdmin = (state) => state.auth.user?.account_type === 'admin';
-
-// Module access selector factory
 export const selectHasModuleAccess = (module) => (state) => {
   const user = state.auth.user;
   if (!user || !state.auth.isAuthenticated) return false;
-  
-  // Admin has access to everything
   if (user.account_type === 'admin') return true;
-  
   if (module === 'users') return user.account_type === 'admin';
-  
   return user.allowed_modules?.includes(module) || false;
 };
 

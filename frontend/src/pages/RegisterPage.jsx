@@ -1,40 +1,54 @@
-import React from 'react'
-import { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { registerUser, clearError } from '../lib/slices/authSlice'
-import Button from '../components/Button'
-import { Eye, EyeOff, CheckCircle } from 'lucide-react'
+import { registerUser } from '../lib/slices/authSlice'
+import { Eye, EyeOff, CheckCircle, Shield, Users } from 'lucide-react'
+import { authAPI } from '../lib/api'
 
 export default function RegisterPage({ onSwitchToLogin }) {
+  const dispatch = useDispatch()
+  const { loading, error } = useSelector(state => state.auth)
+  
+  // Form state
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [accountType, setAccountType] = useState('employee')
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [success, setSuccess] = useState(false)
+  
+  // Component state
   const [localError, setLocalError] = useState('')
+  const [success, setSuccess] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
+  const [isBootstrap, setIsBootstrap] = useState(false)
+  const [checkingBootstrap, setCheckingBootstrap] = useState(true)
 
-  const dispatch = useDispatch()
-  const { loading, error } = useSelector(state => state.auth)
+  useEffect(() => {
+    checkBootstrapMode()
+  }, [])
+
+  const checkBootstrapMode = async () => {
+    try {
+      const response = await authAPI.checkBootstrapMode()
+      setIsBootstrap(response.isBootstrap)
+    } catch (error) {
+      console.error('Failed to check bootstrap mode:', error)
+      setIsBootstrap(false)
+    } finally {
+      setCheckingBootstrap(false)
+    }
+  }
 
   const onRegister = async (e) => {
     e.preventDefault()
     setLocalError('')
-    dispatch(clearError())
 
     // Validation
-    if (!email || !password || !firstName || !lastName) {
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || !password) {
       setLocalError('Please fill in all required fields')
-      return
-    }
-
-    if (password.length < 6) {
-      setLocalError('Password must be at least 6 characters long')
       return
     }
 
@@ -43,7 +57,15 @@ export default function RegisterPage({ onSwitchToLogin }) {
       return
     }
 
+    if (password.length < 6) {
+      setLocalError('Password must be at least 6 characters long')
+      return
+    }
+
     try {
+      // Determine account type based on bootstrap mode
+      const accountType = isBootstrap ? 'admin' : 'employee'
+      
       const userData = {
         email,
         password,
@@ -55,12 +77,33 @@ export default function RegisterPage({ onSwitchToLogin }) {
       }
 
       await dispatch(registerUser(userData)).unwrap()
+      
+      // Set success message based on bootstrap mode
+      if (isBootstrap) {
+        setSuccessMessage('System has been initialized successfully! You can now sign in as the administrator.')
+      } else {
+        setSuccessMessage('Your access request has been submitted and is pending approval. You will be notified once an administrator reviews your request.')
+      }
+      
       setSuccess(true)
     } catch (error) {
       console.error('Registration failed:', error)
     }
   }
 
+  // Loading state while checking bootstrap
+  if (checkingBootstrap) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Handle successful registration display
   if (success) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -69,15 +112,17 @@ export default function RegisterPage({ onSwitchToLogin }) {
             <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-6">
               <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Account Created Successfully!</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">
+              {isBootstrap ? 'System Initialized!' : 'Request Submitted!'}
+            </h1>
             <p className="text-gray-600 mb-6">
-              Your <span className="font-medium text-blue-600">{accountType}</span> account has been created. You can now sign in to access the system.
+              {successMessage}
             </p>
             <button
               onClick={onSwitchToLogin}
               className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-xl font-medium hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-lg"
             >
-              Go to Sign In
+              {isBootstrap ? 'Sign In as Administrator' : 'Back to Sign In'}
             </button>
           </div>
         </div>
@@ -93,13 +138,54 @@ export default function RegisterPage({ onSwitchToLogin }) {
         {/* Logo Section */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl mb-4">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
+            {isBootstrap ? (
+              <Shield className="w-8 h-8 text-white" />
+            ) : (
+              <Users className="w-8 h-8 text-white" />
+            )}
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h1>
-          <p className="text-gray-600">Join PG Micro ISOMS team</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {isBootstrap ? 'Initial System Setup' : 'Request System Access'}
+          </h1>
+          <p className="text-gray-600">
+            {isBootstrap 
+              ? 'Create the first administrator account' 
+              : 'Submit a request to join your organization'
+            }
+          </p>
         </div>
+
+        {/* Bootstrap Warning */}
+        {isBootstrap && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
+            <div className="flex items-start">
+              <Shield className="w-5 h-5 text-yellow-600 mt-0.5 mr-3 flex-shrink-0" />
+              <div>
+                <h3 className="font-semibold text-yellow-800 mb-1">System Initialization</h3>
+                <p className="text-yellow-700 text-sm">
+                  You are creating the first administrator account for this ERP system. 
+                  Only the business owner or designated IT administrator should complete this setup.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Employee Request Info */}
+        {!isBootstrap && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+            <div className="flex items-start">
+              <Users className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
+              <div>
+                <h3 className="font-semibold text-blue-800 mb-1">Employee Access Request</h3>
+                <p className="text-blue-700 text-sm">
+                  Your request will be reviewed by a system administrator. You will be able to 
+                  sign in once your account is approved and permissions are assigned.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Registration Form */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
@@ -150,21 +236,28 @@ export default function RegisterPage({ onSwitchToLogin }) {
               />
             </div>
 
-            {/* Account Type */}
+            {/* Account Type - Conditional Display */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Account Type <span className="text-red-500">*</span>
+                Account Type
               </label>
-              <select 
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white" 
-                value={accountType} 
-                onChange={e => setAccountType(e.target.value)}
-                disabled={loading}
-                required
-              >
-                <option value="employee">Employee</option>
-                <option value="admin">Administrator</option>
-              </select>
+              <div className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-100 text-gray-700">
+                <div className="flex items-center">
+                  {isBootstrap ? (
+                    <>
+                      <Shield className="w-5 h-5 text-purple-600 mr-2" />
+                      <span className="font-medium">Administrator</span>
+                      <span className="text-sm text-gray-500 ml-2">(System Setup)</span>
+                    </>
+                  ) : (
+                    <>
+                      <Users className="w-5 h-5 text-blue-600 mr-2" />
+                      <span className="font-medium">Employee</span>
+                      <span className="text-sm text-gray-500 ml-2">(Pending Approval)</span>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
             
             {/* Password Fields */}
@@ -270,10 +363,10 @@ export default function RegisterPage({ onSwitchToLogin }) {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Creating Account...
+                  {isBootstrap ? 'Initializing System...' : 'Submitting Request...'}
                 </div>
               ) : (
-                'Create Account'
+                isBootstrap ? 'Initialize System' : 'Submit Request'
               )}
             </button>
           </form>
@@ -295,7 +388,10 @@ export default function RegisterPage({ onSwitchToLogin }) {
 
         <div className="text-center mt-8">
           <p className="text-sm text-gray-500">
-            Secure registration for PG Micro ISOMS team members
+            {isBootstrap 
+              ? 'Secure system initialization for PG Micro ISOMS'
+              : 'Secure access request for PG Micro ISOMS'
+            }
           </p>
         </div>
       </div>

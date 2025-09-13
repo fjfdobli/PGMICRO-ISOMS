@@ -20,7 +20,6 @@ export default function Modal({
     full: 'max-w-full mx-4'
   }
   
-  // Handle escape key
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape' && isOpen) {
@@ -43,19 +42,16 @@ export default function Modal({
   
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
-      {/* Overlay */}
       <div 
         className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
         onClick={closeOnOverlayClick ? onClose : undefined}
       />
       
-      {/* Modal */}
       <div className="flex min-h-full items-center justify-center p-4">
         <div 
           className={`relative bg-white rounded-xl shadow-2xl w-full ${sizeClasses[size]} ${className}`}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
           {(title || showCloseButton) && (
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               {title && (
@@ -74,7 +70,6 @@ export default function Modal({
             </div>
           )}
           
-          {/* Content */}
           <div className="p-6">
             {children}
           </div>

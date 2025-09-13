@@ -32,13 +32,11 @@ export default function Navbar() {
 
   const isAdmin = user?.account_type === 'admin'
   
-  // Get user's allowed modules
   const userModules = user?.allowed_modules || []
   console.log('User modules in navbar:', userModules)
   
-  // Filter tabs based on user permissions
   const allowedTabs = tabs.filter(tab => {
-    if (isAdmin) return true // Admin can see everything
+    if (isAdmin) return true 
     return userModules.includes(tab.module)
   })
 
@@ -49,7 +47,6 @@ export default function Navbar() {
       navigate('/')
     } catch (error) {
       console.error('Logout error:', error)
-      // Even if logout fails on server, clear local state
       localStorage.removeItem('authToken')
       setUser(null)
       navigate('/')
