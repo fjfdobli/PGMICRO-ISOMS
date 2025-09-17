@@ -1,8 +1,8 @@
 import React from 'react'
 import { useEffect, useState } from 'react'
 import { Edit2, Trash2, Plus, Users, Mail, Phone, MapPin, Search, Filter, MoreVertical, Save, X, AlertTriangle, CheckCircle, Building, Globe, Calendar, DollarSign, Package, TrendingUp, Eye, Star } from 'lucide-react'
-import Card from '../components/Card'
-import Button from '../components/Button'
+import Card from '../../components/Card'
+import Button from '../../components/Button'
 
 const Modal = ({ isOpen, onClose, title, children, size = "md" }) => {
   if (!isOpen) return null

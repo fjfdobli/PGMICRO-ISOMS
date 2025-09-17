@@ -1,7 +1,7 @@
 import React from 'react'
 import { useEffect, useState, useMemo } from 'react'
-import Card from '../components/Card'
-import Button from '../components/Button'
+import Card from '../../components/Card'
+import Button from '../../components/Button'
 
 export default function PurchaseOrdersPage() {
   const [suppliers, setSuppliers] = useState([])

@@ -1,7 +1,7 @@
 import React from 'react'
 import { useState } from 'react'
-import LoginPage from './LoginPage'
-import RegisterPage from './RegisterPage'
+import LoginPage from '../LoginPage/LoginPage'
+import RegisterPage from '../RegisterPage/RegisterPage'
 
 export default function AuthContainer({ onLogin }) { 
   const [isLogin, setIsLogin] = useState(true)

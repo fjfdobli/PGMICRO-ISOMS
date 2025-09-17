@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import Card from '../components/Card'
-import Button from '../components/Button'
-import Input from '../components/Input'
+import Card from '../../components/Card'
+import Button from '../../components/Button'
+import Input from '../../components/Input'
 import { User, Mail, Phone, MapPin, Shield, Save, Edit3, Eye, EyeOff } from 'lucide-react'
 
 export default function ProfileSettingsPage() {

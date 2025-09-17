@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { registerUser } from '../lib/slices/authSlice'
+import { registerUser } from '../../lib/slices/authSlice'
 import { Eye, EyeOff, CheckCircle, Shield, Users } from 'lucide-react'
-import { authAPI } from '../lib/api'
+import { authAPI } from '../../lib/api'
 
 export default function RegisterPage({ onSwitchToLogin }) {
   const dispatch = useDispatch()

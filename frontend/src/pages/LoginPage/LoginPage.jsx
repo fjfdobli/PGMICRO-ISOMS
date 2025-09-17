@@ -1,8 +1,8 @@
 import React from 'react'
 import { useState } from 'react'
-import { authAPI } from '../lib/api'
-import Button from '../components/Button'
-import ContactAdminModal from '../components/ContactAdminModal'
+import { authAPI } from '../../lib/api'
+import Button from '../../components/Button'
+import ContactAdminModal from '../../components/ContactAdminModal'
 import { Eye, EyeOff, AlertTriangle, Mail, Clock, Shield } from 'lucide-react'
 
 export default function LoginPage({ onSwitchToRegister, onLogin }) {

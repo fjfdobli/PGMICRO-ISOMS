@@ -1,9 +1,9 @@
 import React from 'react'
 import { useState, useEffect } from 'react'
 import { Users, UserPlus, Edit2, Mail, Calendar, Shield, Eye, EyeOff, Plus, Search, Filter, MoreVertical, X, AlertTriangle, CheckCircle, Lock, UserCheck, UserX, Clock, Ban } from 'lucide-react'
-import Card from '../components/Card'
-import Button from '../components/Button'
-import { usersAPI, authAPI } from '../lib/api'
+import Card from '../../components/Card'
+import Button from '../../components/Button'
+import { usersAPI, authAPI } from '../../lib/api'
 
 const AVAILABLE_MODULES = [
   { id: 'dashboard', label: 'Dashboard', description: 'View system overview and analytics' },

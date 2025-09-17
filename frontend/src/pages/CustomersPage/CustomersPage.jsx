@@ -1,7 +1,7 @@
 import React from 'react'
 import { useEffect, useState } from 'react'
-import Card from '../components/Card'
-import Button from '../components/Button'
+import Card from '../../components/Card'
+import Button from '../../components/Button'
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState([])
