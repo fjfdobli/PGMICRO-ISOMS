@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { useSelector, useDispatch } from 'react-redux'
 import { authAPI } from './lib/api'
+import { markAsRead } from './lib/slices/notificationSlice'
 import DashboardPage from './pages/DashboardPage/DashboardPage'
 import SalesPage from './pages/SalesPage/SalesPage'
 import PurchaseOrdersPage from './pages/PurchaseOrdersPage/PurchaseOrdersPage'
@@ -98,8 +100,9 @@ function ProtectedRoute({ children, requiredModule, user }) {
 }
 
 function Layout({ children, user: userProp, onLogout }) {
+  const dispatch = useDispatch()
+  const { items: notifications, unreadCount } = useSelector(state => state.notifications)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [notifications, setNotifications] = useState([])
   const [showNotifications, setShowNotifications] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [user, setUser] = useState(null)
@@ -131,18 +134,7 @@ function Layout({ children, user: userProp, onLogout }) {
     }
   }, [showNotifications, showProfileMenu])
 
-  useEffect(() => {
-    loadNotifications()
-  }, [])
-
-  const loadNotifications = async () => {
-    try {
-      // TODO: Replace with actual API call when backend route is ready
-      setNotifications([])
-    } catch (error) {
-      console.error('Error loading notifications:', error)
-    }
-  }
+  // No need for loadNotifications - Redux handles notification state
 
   // Define all available navigation items
   const allNavigationItems = [
@@ -291,10 +283,16 @@ function Layout({ children, user: userProp, onLogout }) {
     return location.pathname === href
   }
 
-  const unreadNotifications = notifications.filter(n => n.unread).length
+  // Unread count comes from Redux store
 
   const getNotificationIcon = (type) => {
     switch (type) {
+      case 'reorder':
+        return (
+          <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+            <span className="text-red-600 text-sm">🚨</span>
+          </div>
+        )
       case 'low_stock':
         return (
           <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
@@ -338,15 +336,8 @@ function Layout({ children, user: userProp, onLogout }) {
     }
   }
 
-  const markNotificationAsRead = async (notificationId) => {
-    try {
-      // TODO: Replace with actual API call when backend route is ready
-      setNotifications(prev => 
-        prev.map(n => n.id === notificationId ? { ...n, unread: false } : n)
-      )
-    } catch (error) {
-      console.error('Error marking notification as read:', error)
-    }
+  const markNotificationAsRead = (notificationId) => {
+    dispatch(markAsRead(notificationId))
   }
 
   // Display user role properly
@@ -474,9 +465,9 @@ function Layout({ children, user: userProp, onLogout }) {
                   <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-5 5V17zM10.607 2.586a2 2 0 112.828 2.828l-8.485 8.485a2 2 0 01-1.414.586H1v-2.536a2 2 0 01.586-1.414L10.607 2.586z" />
                   </svg>
-                  {unreadNotifications > 0 && (
+                  {unreadCount > 0 && (
                     <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                      {unreadNotifications}
+                      {unreadCount}
                     </span>
                   )}
                 </button>
@@ -487,7 +478,7 @@ function Layout({ children, user: userProp, onLogout }) {
                     <div className="p-4 border-b border-gray-200">
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-medium text-gray-900">Notifications</h3>
-                        <span className="text-sm text-gray-500">{unreadNotifications} unread</span>
+                        <span className="text-sm text-gray-500">{unreadCount} unread</span>
                       </div>
                     </div>
                     <div className="max-h-64 overflow-y-auto">
@@ -511,7 +502,12 @@ function Layout({ children, user: userProp, onLogout }) {
                               {getNotificationIcon(notification.type)}
                               <div className="ml-3 flex-1">
                                 <p className="text-sm font-medium text-gray-900">{notification.message}</p>
-                                <p className="text-xs text-gray-500 mt-1">{notification.time}</p>
+                                {notification.description && (
+                                  <p className="text-xs text-gray-600 mt-1">{notification.description}</p>
+                                )}
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {notification.timestamp ? new Date(notification.timestamp).toLocaleString() : notification.time}
+                                </p>
                               </div>
                               {notification.unread && (
                                 <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
