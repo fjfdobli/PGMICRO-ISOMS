@@ -2,6 +2,10 @@ import React from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import Card from '../../components/Card'
 import Button from '../../components/Button'
+import Modal from '../../components/Modal'
+import Toast from '../../components/Toast'
+import { useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 export default function SalesPage() {
   const [customers, setCustomers] = useState([])
@@ -11,25 +15,81 @@ export default function SalesPage() {
   const [saving, setSaving] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showProductModal, setShowProductModal] = useState(false)
+  const [modalProduct, setModalProduct] = useState(null)
+  const [toast, setToast] = useState({ isVisible: false, message: '', type: 'success' })
+  const [coupon, setCoupon] = useState('')
+  const [discount, setDiscount] = useState(0)
+  const [showCartModal, setShowCartModal] = useState(false)
+  const [orderStatus, setOrderStatus] = useState('Pending')
+  const [selectedCategory, setSelectedCategory] = useState('All')
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false)
+  const [checkoutStep, setCheckoutStep] = useState(1) // 1: Customer, 2: Billing, 3: Payment, 4: Confirmation
+  const [billingInfo, setBillingInfo] = useState({ address: '', city: '', zip: '', phone: '' })
+  const [paymentProcessing, setPaymentProcessing] = useState(false)
+  const [orderConfirmation, setOrderConfirmation] = useState(null)
+  // Mock recent orders data
+  const recentOrders = [
+    { id: 'SO-1001', date: '2024-09-01', status: 'Approved', total: 35000 },
+    { id: 'SO-1000', date: '2024-08-28', status: 'Declined', total: 12000 },
+    { id: 'SO-0999', date: '2024-08-25', status: 'Pending', total: 18000 },
+  ]
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
       try {
-        // TODO: Replace with actual API calls when backend endpoints are ready
-        // Example:
-        // const [customersRes, productsRes] = await Promise.all([
-        //   fetch('http://localhost:3002/api/customers'),
-        //   fetch('http://localhost:3002/api/products')
-        // ])
-        // const customers = await customersRes.json()
-        // const products = await productsRes.json()
-        // setCustomers(customers.data || [])
-        // setProducts(products.data || [])
-        
-        // For now, initialize with empty arrays
-        setCustomers([])
-        setProducts([])
+        // Static inventory data (from InventoryPage)
+        const inventory = [
+          { id: 1, productDescription: "Intel Core i9-14900K Processor", serialNumber: "INT-I914900K-001", brand: "Intel", model: "Core i9-14900K", category: "Processor", purchasePrice: 28000, sellingPrice: 35000, itemStatus: "available", location: "CPU Storage A-1", dateReceived: "2024-01-15", warrantyDuration: "3 years", warrantyStartDate: "2024-01-15", warrantyEndDate: "2027-01-15", reorderPoint: 2 },
+          { id: 4, productDescription: "ASUS ROG STRIX Z790-E Gaming WiFi", serialNumber: "AS-Z790E-004", brand: "ASUS", model: "ROG STRIX Z790-E", category: "Motherboards", purchasePrice: 18000, sellingPrice: 24000, itemStatus: "available", location: "Motherboard Storage B-1", dateReceived: "2024-01-12", warrantyDuration: "3 years", reorderPoint: 2 },
+          { id: 6, productDescription: "Gigabyte B760 AORUS ELITE AX", serialNumber: "GB-B760AE-006", brand: "Gigabyte", model: "B760 AORUS ELITE AX", category: "Motherboards", purchasePrice: 10000, sellingPrice: 14000, itemStatus: "available", location: "Motherboard Storage B-2", dateReceived: "2024-01-16", warrantyDuration: "3 years", reorderPoint: 3 },
+          { id: 7, productDescription: "NVIDIA GeForce RTX 4090 24GB", serialNumber: "NV-RTX4090-007", brand: "NVIDIA", model: "GeForce RTX 4090", category: "Video Cards", purchasePrice: 85000, sellingPrice: 95000, itemStatus: "available", location: "GPU Storage Premium", dateReceived: "2024-01-10", warrantyDuration: "3 years", reorderPoint: 1 },
+          { id: 9, productDescription: "NVIDIA GeForce RTX 4070 12GB", serialNumber: "NV-RTX4070-009", brand: "NVIDIA", model: "GeForce RTX 4070", category: "Video Cards", purchasePrice: 28000, sellingPrice: 34000, itemStatus: "available", location: "GPU Storage A-1", dateReceived: "2024-01-12", warrantyDuration: "3 years", reorderPoint: 2 },
+          { id: 10, productDescription: "ASUS ROG Swift PG27AQN 27inch 360Hz", serialNumber: "AS-PG27AQN-010", brand: "ASUS", model: "ROG Swift PG27AQN", category: "Monitors", purchasePrice: 45000, sellingPrice: 52000, itemStatus: "available", location: "Monitor Display Area", dateReceived: "2024-01-15", warrantyDuration: "3 years", reorderPoint: 1 },
+          { id: 12, productDescription: "Samsung Odyssey G7 32inch Curved", serialNumber: "SM-ODG732-012", brand: "Samsung", model: "Odyssey G7 32", category: "Monitors", purchasePrice: 28000, sellingPrice: 35000, itemStatus: "available", location: "Monitor Display Area", dateReceived: "2024-01-18", warrantyDuration: "1 year", reorderPoint: 2 },
+          { id: 13, productDescription: "ASUS ROG Zephyrus G16 Gaming Laptop", serialNumber: "AS-ROGG16-013", brand: "ASUS", model: "ROG Zephyrus G16", category: "Laptops", purchasePrice: 95000, sellingPrice: 110000, itemStatus: "available", location: "Laptop Showroom A-1", dateReceived: "2024-01-14", warrantyDuration: "2 years", reorderPoint: 1 },
+          { id: 15, productDescription: "Dell XPS 15 OLED Touch Laptop", serialNumber: "DL-XPS15OLED-015", brand: "Dell", model: "XPS 15 OLED", category: "Laptops", purchasePrice: 85000, sellingPrice: 98000, itemStatus: "available", location: "Laptop Showroom A-2", dateReceived: "2024-01-13", warrantyDuration: "1 year", reorderPoint: 2 },
+          { id: 16, productDescription: "HP LaserJet Pro M404dw Wireless", serialNumber: "HP-M404DW-016", brand: "HP", model: "LaserJet Pro M404dw", category: "Printers", purchasePrice: 12000, sellingPrice: 16000, itemStatus: "available", location: "Printer Storage C-1", dateReceived: "2024-01-16", warrantyDuration: "1 year", reorderPoint: 3 },
+          { id: 19, productDescription: "HP 414A Black Toner Cartridge", serialNumber: "HP-414ABK-019", brand: "HP", model: "414A Black", category: "Toners", purchasePrice: 3500, sellingPrice: 4800, itemStatus: "available", location: "Consumables Storage D-1", dateReceived: "2024-01-11", warrantyDuration: "6 months", reorderPoint: 10 },
+          { id: 20, productDescription: "Canon 046H Cyan High Yield Toner", serialNumber: "CN-046HC-020", brand: "Canon", model: "046H Cyan", category: "Toners", purchasePrice: 4200, sellingPrice: 5500, itemStatus: "available", location: "Consumables Storage D-1", dateReceived: "2024-01-12", warrantyDuration: "6 months", reorderPoint: 8 },
+          { id: 21, productDescription: "Brother TN-2480 Black Toner", serialNumber: "BR-TN2480-021", brand: "Brother", model: "TN-2480", category: "Toners", purchasePrice: 2800, sellingPrice: 3800, itemStatus: "available", location: "Consumables Storage D-2", dateReceived: "2024-01-14", warrantyDuration: "6 months", reorderPoint: 12 },
+          { id: 22, productDescription: "Canon PGI-280XL Black Ink", serialNumber: "CN-PGI280XL-022", brand: "Canon", model: "PGI-280XL Black", category: "Inks", purchasePrice: 1200, sellingPrice: 1800, itemStatus: "available", location: "Consumables Storage D-3", dateReceived: "2024-01-15", warrantyDuration: "3 months", reorderPoint: 20 }
+        ]
+        // Only include available items
+        const availableProducts = inventory.filter(item => item.itemStatus === 'available').map(item => ({
+          id: item.id,
+          name: item.productDescription,
+          sku: item.serialNumber,
+          price: item.sellingPrice,
+          stock: 1,
+          description: `${item.brand} ${item.model} (${item.category})\nLocation: ${item.location}`
+        }))
+        setCustomers([
+          {
+            id: '1',
+            name: 'Juan Dela Cruz',
+            email: 'juan.delacruz@email.com',
+            phone_number: '+63 912 345 6789',
+            customer_type: 'Regular',
+            address: '123 Mabini St.',
+            city: 'Manila',
+            country: 'Philippines',
+            notes: 'VIP customer, prefers COD.'
+          },
+          {
+            id: '2',
+            name: 'Juan Dela Cruz',
+            email: 'juan.delacruz@email.com',
+            phone_number: '+63 912 345 6789',
+            customer_type: 'Regular',
+            address: '123 Mabini St.',
+            city: 'Manila',
+            country: 'Philippines',
+            notes: 'VIP customer, prefers COD.'
+          }
+        ])
+        setProducts(availableProducts)
       } catch (error) {
         console.error('Error fetching data:', error)
         setCustomers([])
@@ -38,21 +98,45 @@ export default function SalesPage() {
         setLoading(false)
       }
     }
-
     fetchData()
   }, [])
 
+  // Load cart from localStorage on mount
+  useEffect(() => {
+    const savedCart = localStorage.getItem('cart')
+    if (savedCart) setCart(JSON.parse(savedCart))
+  }, [])
+
+  // Save cart to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('cart', JSON.stringify(cart))
+  }, [cart])
+
+  // Get unique categories from products
+  const categories = useMemo(() => {
+    const cats = products.map(p => p.description?.split('(')[1]?.split(')')[0] || 'Other')
+    return ['All', ...Array.from(new Set(cats))]
+  }, [products])
+  // Filter products by selected category
   const filteredProducts = useMemo(() => {
-    if (!searchTerm) return products
-    return products.filter(p => 
+    let filtered = products
+    if (selectedCategory !== 'All') {
+      filtered = filtered.filter(p => p.description?.includes(selectedCategory))
+    }
+    if (!searchTerm) return filtered
+    return filtered.filter(p =>
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.sku.toLowerCase().includes(searchTerm.toLowerCase())
     )
-  }, [products, searchTerm])
+  }, [products, searchTerm, selectedCategory])
+
+  const showToast = (message, type = 'success') => {
+    setToast({ isVisible: true, message, type })
+  }
 
   const addToCart = (p) => {
     if (p.stock <= 0) {
-      alert('Product is out of stock')
+      showToast('Product is out of stock', 'error')
       return
     }
     setCart(prev => {
@@ -60,13 +144,15 @@ export default function SalesPage() {
       if (idx >= 0) {
         const currentQty = prev[idx].quantity
         if (currentQty >= p.stock) {
-          alert('Cannot add more items than available stock')
+          showToast('Cannot add more items than available stock', 'error')
           return prev
         }
         const copy = [...prev]
         copy[idx].quantity += 1
+        showToast('Increased quantity in cart', 'success')
         return copy
       }
+      showToast('Added to cart', 'success')
       return [...prev, { ...p, quantity: 1 }]
     })
   }
@@ -89,6 +175,10 @@ export default function SalesPage() {
   }
 
   const total = useMemo(() => cart.reduce((s, i) => s + i.quantity * Number(i.price), 0), [cart])
+
+  const discountedTotal = useMemo(() => {
+    return total * (1 - discount)
+  }, [total, discount])
 
   const saveOrder = async () => {
     if (!selectedCustomer) {
@@ -134,7 +224,7 @@ export default function SalesPage() {
       
       setCart([])
       setSelectedCustomer('')
-      alert('Order saved successfully!')
+      alert(`Order saved successfully!\nStatus: ${orderStatus}`)
     } catch (error) {
       alert('Error saving order: ' + error.message)
     } finally {
@@ -146,17 +236,91 @@ export default function SalesPage() {
     setCart([])
   }
 
+  const openProductModal = (product) => {
+    setModalProduct(product)
+    setShowProductModal(true)
+  }
+
+  // Simple coupon logic: 'DISCOUNT10' gives 10% off
+  const applyCoupon = () => {
+    if (coupon.trim().toUpperCase() === 'DISCOUNT10') {
+      setDiscount(0.1)
+      showToast('10% discount applied!', 'success')
+    } else {
+      setDiscount(0)
+      showToast('Invalid coupon code', 'error')
+    }
+  }
+
+  const navigate = useNavigate()
+
+  const customerFields = ['name', 'email', 'phone_number', 'customer_type', 'address', 'city', 'country', 'notes']
+  const [customerForm, setCustomerForm] = useState({
+    name: '',
+    email: '',
+    phone_number: '',
+    customer_type: 'Walk-in',
+    address: '',
+    city: '',
+    country: 'Philippines',
+    notes: ''
+  })
+  // When selectedCustomer changes, auto-fill form if found
+  useEffect(() => {
+    const found = customers.find(c => c.id === selectedCustomer)
+    if (found) {
+      setCustomerForm({
+        name: found.name || '',
+        email: found.email || '',
+        phone_number: found.phone_number || '',
+        customer_type: found.customer_type || 'Walk-in',
+        address: found.address || '',
+        city: found.city || '',
+        country: found.country || 'Philippines',
+        notes: found.notes || ''
+      })
+    } else {
+      setCustomerForm({
+        name: '',
+        email: '',
+        phone_number: '',
+        customer_type: 'Walk-in',
+        address: '',
+        city: '',
+        country: 'Philippines',
+        notes: ''
+      })
+    }
+  }, [selectedCustomer, customers])
+
   return (
     <div className="min-h-screen bg-gray-50 p-4">
+      {/* Toast Notification */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={() => setToast(t => ({ ...t, isVisible: false }))}
+        duration={2500}
+      />
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
+        <div className="flex justify-between items-center mb-8">
+          <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Sales Order</h1>
           <p className="text-gray-600">Create new sales orders and manage customer purchases</p>
+          </div>
+          <Button
+            onClick={() => setShowCartModal(true)}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            Cart ({cart.length})
+          </Button>
         </div>
 
+        {/* In the main layout, change the grid to two columns: left (customer info + recent orders), right (product catalog) */}
         <div className="grid lg:grid-cols-5 gap-6">
-          {/* Left Sidebar - Customer & Products */}
+          {/* Left Sidebar - Customer & Recent Orders */}
           <div className="lg:col-span-2 space-y-6">
             {/* Customer Selection */}
             <Card title="Customer Information">
@@ -166,7 +330,7 @@ export default function SalesPage() {
                     Select Customer <span className="text-red-500">*</span>
                   </label>
                   <select 
-                    className="w-full border border-gray-300 rounded-lg p-3 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    className="w-full border border-gray-300 rounded-lg p-3 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors mb-2"
                     value={selectedCustomer}
                     onChange={e => setSelectedCustomer(e.target.value)}
                     disabled={loading}
@@ -177,19 +341,99 @@ export default function SalesPage() {
                     ))}
                   </select>
                 </div>
-                {selectedCustomer && (
-                  <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                    <div className="flex items-center">
-                      <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                      <span className="text-sm font-medium text-green-800">
-                        Customer Selected
-                      </span>
-                    </div>
-                  </div>
-                )}
+                {/* All customer fields */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <input
+                    type="text"
+                    placeholder="Full Name"
+                    value={customerForm.name}
+                    onChange={e => setCustomerForm(f => ({ ...f, name: e.target.value }))}
+                    className="border border-gray-300 rounded-lg p-3"
+                  />
+                  <input
+                    type="email"
+                    placeholder="Email"
+                    value={customerForm.email}
+                    onChange={e => setCustomerForm(f => ({ ...f, email: e.target.value }))}
+                    className="border border-gray-300 rounded-lg p-3"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Phone Number"
+                    value={customerForm.phone_number}
+                    onChange={e => setCustomerForm(f => ({ ...f, phone_number: e.target.value }))}
+                    className="border border-gray-300 rounded-lg p-3"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Customer Type"
+                    value={customerForm.customer_type}
+                    onChange={e => setCustomerForm(f => ({ ...f, customer_type: e.target.value }))}
+                    className="border border-gray-300 rounded-lg p-3"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Address"
+                    value={customerForm.address}
+                    onChange={e => setCustomerForm(f => ({ ...f, address: e.target.value }))}
+                    className="border border-gray-300 rounded-lg p-3"
+                  />
+                  <input
+                    type="text"
+                    placeholder="City"
+                    value={customerForm.city}
+                    onChange={e => setCustomerForm(f => ({ ...f, city: e.target.value }))}
+                    className="border border-gray-300 rounded-lg p-3"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Country"
+                    value={customerForm.country}
+                    onChange={e => setCustomerForm(f => ({ ...f, country: e.target.value }))}
+                    className="border border-gray-300 rounded-lg p-3"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Notes"
+                    value={customerForm.notes}
+                    onChange={e => setCustomerForm(f => ({ ...f, notes: e.target.value }))}
+                    className="border border-gray-300 rounded-lg p-3"
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <Button
+                    onClick={() => navigate('/customers?add=true')}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium ml-2"
+                  >
+                    Add New Customer
+                  </Button>
+                </div>
               </div>
             </Card>
-
+            {/* Recent Orders */}
+            <Card title="Recent Orders">
+              <div className="space-y-2">
+                {recentOrders.map(order => (
+                  <div key={order.id} className="flex justify-between items-center border-b last:border-b-0 py-2">
+                    <div>
+                      <div className="font-medium text-gray-900">{order.id}</div>
+                      <div className="text-xs text-gray-500">{order.date}</div>
+                    </div>
+                    <div className={`text-xs font-semibold px-2 py-1 rounded-lg ${
+                      order.status === 'Approved' ? 'bg-green-100 text-green-700' :
+                      order.status === 'Declined' ? 'bg-red-100 text-red-700' :
+                      'bg-yellow-100 text-yellow-700'
+                    }`}>
+                      {order.status}
+                    </div>
+                    <div className="text-sm font-bold text-blue-600">₱{order.total.toLocaleString()}</div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+          {/* Product Catalog on the right */}
+          <div className="lg:col-span-3">
             {/* Product Catalog */}
             <Card title="Product Catalog">
               <div className="space-y-4">
@@ -207,77 +451,107 @@ export default function SalesPage() {
                     disabled={loading}
                   />
                 </div>
-
-                {/* Product List */}
-                <div className="max-h-96 overflow-auto border border-gray-200 rounded-lg">
-                  {loading ? (
-                    <div className="p-8 text-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                      <p className="text-gray-500">Loading products...</p>
+                {/* Category Dropdown above product table */}
+                <div className="flex items-center gap-4 mb-4">
+                  <label className="text-sm font-medium text-gray-700">Category:</label>
+                  <select
+                    value={selectedCategory}
+                    onChange={e => setSelectedCategory(e.target.value)}
+                    className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    {categories.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
                     </div>
-                  ) : filteredProducts.length === 0 ? (
-                    <div className="p-8 text-center text-gray-500">
-                      {searchTerm ? 'No products found matching your search' : 
-                       products.length === 0 ? 'No products available. Product data will load when API is connected.' : 
-                       'No products available'}
-                    </div>
-                  ) : (
-                    filteredProducts.map(p => (
-                      <div key={p.id} className="flex items-center justify-between p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-gray-900 truncate">{p.name}</div>
-                          <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
-                            <span className="bg-gray-100 px-2 py-1 rounded text-xs font-mono">
-                              {p.sku}
-                            </span>
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${
-                              p.stock > 10 ? 'bg-green-100 text-green-800' :
-                              p.stock > 0 ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-red-100 text-red-800'
-                            }`}>
-                              Stock: {p.stock}
-                            </span>
-                          </div>
-                          <div className="text-lg font-semibold text-blue-600 mt-1">
-                            ₱{Number(p.price).toFixed(2)}
-                          </div>
-                        </div>
+                {/* Product Table */}
+                <div className="overflow-x-auto border border-gray-200 rounded-lg max-h-[520px] overflow-y-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 sticky top-0 z-10">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Add</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {filteredProducts.map(p => (
+                        <tr key={p.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-4">
+                            <div className="font-medium text-gray-900 cursor-pointer" onClick={() => openProductModal(p)}>{p.name}</div>
+                            <div className="text-xs text-gray-500">{p.sku}</div>
+                            <div className="text-xs text-gray-400">{p.description}</div>
+                          </td>
+                          <td className="px-4 py-4 text-right font-semibold text-blue-600">₱{Number(p.price).toFixed(2)}</td>
+                          <td className="px-4 py-4 text-center">{p.stock} in stock</td>
+                          <td className="px-4 py-4 text-center">
+                            <input
+                              type="number"
+                              min="1"
+                              max={p.stock}
+                              value={cart.find(i => i.id === p.id)?.quantity || 1}
+                              onChange={e => updateQuantity(p.id, parseInt(e.target.value) || 1)}
+                              className="w-16 text-center border border-gray-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                          </td>
+                          <td className="px-4 py-4 text-center">
                         <Button 
                           onClick={() => addToCart(p)}
                           disabled={p.stock <= 0}
-                          className="ml-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                         >
                           {p.stock <= 0 ? 'Out of Stock' : 'Add'}
                         </Button>
-                      </div>
-                    ))
-                  )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </Card>
           </div>
-
-          {/* Right Section - Cart & Order Summary */}
-          <div className="lg:col-span-3">
-            <Card title="Order Details">
-              <div className="space-y-6">
-                {/* Cart Header */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Cart Items</h3>
-                    <p className="text-sm text-gray-600">{cart.length} items in cart</p>
+        </div>
                   </div>
-                  {cart.length > 0 && (
+      {/* Product Details Modal */}
+      <Modal
+        isOpen={showProductModal}
+        onClose={() => setShowProductModal(false)}
+        title={modalProduct?.name || 'Product Details'}
+        size="md"
+      >
+        {modalProduct && (
+          <div className="space-y-4">
+            <div className="text-gray-700 text-sm">SKU: {modalProduct.sku}</div>
+            <div className="text-gray-700 text-sm">Stock: {modalProduct.stock}</div>
+            <div className="text-lg font-semibold text-blue-600">₱{Number(modalProduct.price).toFixed(2)}</div>
+            {modalProduct.description && (
+              <div className="text-gray-600 text-sm">{modalProduct.description}</div>
+            )}
                     <Button 
-                      onClick={clearCart}
-                      className="text-red-600 hover:text-red-800 text-sm underline bg-transparent border-none p-0"
-                    >
-                      Clear All
+              onClick={() => {
+                addToCart(modalProduct)
+                setShowProductModal(false)
+              }}
+              disabled={modalProduct.stock <= 0}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
+            >
+              {modalProduct.stock <= 0 ? 'Out of Stock' : 'Add to Cart'}
                     </Button>
-                  )}
-                </div>
-
-                {/* Cart Items */}
+          </div>
+        )}
+      </Modal>
+      {/* Cart Modal: add order status dropdown above Save Order */}
+      <Modal
+        isOpen={showCartModal}
+        onClose={() => setShowCartModal(false)}
+        title="Order Details"
+        size="lg"
+      >
+        <div className="space-y-6">
+          {/* Cart Items Table (reuse previous order summary table) */}
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
                   {cart.length === 0 ? (
                     <div className="p-12 text-center">
@@ -305,10 +579,8 @@ export default function SalesPage() {
                           {cart.map(item => (
                             <tr key={item.id} className="hover:bg-gray-50">
                               <td className="px-4 py-4">
-                                <div>
                                   <div className="font-medium text-gray-900">{item.name}</div>
                                   <div className="text-sm text-gray-500">{item.sku}</div>
-                                </div>
                               </td>
                               <td className="px-4 py-4 text-center">
                                 <input
@@ -316,7 +588,7 @@ export default function SalesPage() {
                                   min="1"
                                   max={item.stock}
                                   value={item.quantity}
-                                  onChange={e => updateQuantity(item.id, parseInt(e.target.value) || 0)}
+                            onChange={e => updateQuantity(item.id, parseInt(e.target.value) || 1)}
                                   className="w-20 text-center border border-gray-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 />
                               </td>
@@ -344,41 +616,233 @@ export default function SalesPage() {
                     </div>
                   )}
                 </div>
-
-                {/* Order Summary */}
+          {/* Order Summary and Coupon */}
                 {cart.length > 0 && (
                   <div className="border-t border-gray-200 pt-6">
                     <div className="flex justify-between items-center mb-6">
                       <div className="text-lg font-medium text-gray-900">Order Total:</div>
-                      <div className="text-2xl font-bold text-blue-600">₱{total.toFixed(2)}</div>
+                <div className="text-2xl font-bold text-blue-600">₱{discountedTotal.toFixed(2)}</div>
+              </div>
+              <div className="flex items-center gap-2 mb-4">
+                <input
+                  type="text"
+                  placeholder="Coupon code"
+                  value={coupon}
+                  onChange={e => setCoupon(e.target.value)}
+                  className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <Button
+                  onClick={applyCoupon}
+                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+                >
+                  Apply
+                </Button>
+                {discount > 0 && (
+                  <span className="ml-2 text-green-600 font-medium">{Math.round(discount * 100)}% off</span>
+                )}
+              </div>
+              <div className="flex items-center gap-4 mb-4">
+                <label className="text-sm font-medium text-gray-700">Order Status:</label>
+                <select
+                  value={orderStatus}
+                  onChange={e => setOrderStatus(e.target.value)}
+                  className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="Pending">Pending</option>
+                  <option value="Declined">Declined</option>
+                  <option value="Approved">Approved</option>
+                </select>
                     </div>
-                    
                     <div className="flex gap-4">
                       <Button 
-                        onClick={saveOrder}
-                        disabled={saving || !selectedCustomer || cart.length === 0}
-                        className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
-                      >
-                        {saving ? (
-                          <div className="flex items-center justify-center">
-                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Saving Order...
-                          </div>
-                        ) : (
-                          'Save Order'
-                        )}
+                  onClick={() => { setShowCartModal(false); setShowCheckoutModal(true); setCheckoutStep(selectedCustomer ? 2 : 1); }}
+                  disabled={cart.length === 0}
+                  className="flex-1 bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium mt-4"
+                >
+                  Proceed to Checkout
                       </Button>
                     </div>
                   </div>
                 )}
               </div>
-            </Card>
+      </Modal>
+      {/* Step-by-step Checkout Modal */}
+      <Modal
+        isOpen={showCheckoutModal}
+        onClose={() => setShowCheckoutModal(false)}
+        title={
+          checkoutStep === 1 ? 'Customer Information' :
+          checkoutStep === 2 ? 'Billing Information' :
+          checkoutStep === 3 ? 'Payment' :
+          checkoutStep === 4 ? 'Order Confirmation' : ''
+        }
+        size="md"
+      >
+        {/* Step 1: Customer Selection/Creation */}
+        {checkoutStep === 1 && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Select Customer <span className="text-red-500">*</span></label>
+            <select
+              className="w-full border border-gray-300 rounded-lg p-3 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors mb-4"
+              value={selectedCustomer}
+              onChange={e => { const v = e.target.value; setSelectedCustomer(v); if (v) setCheckoutStep(2); }}
+            >
+              <option value="">Choose a customer...</option>
+              {customers.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            <Button
+              onClick={() => navigate('/customers?add=true')}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium mb-4"
+            >
+              Add New Customer
+            </Button>
+            <Button
+              onClick={() => setCheckoutStep(2)}
+              disabled={!selectedCustomer}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium ml-2"
+            >
+              Next
+            </Button>
           </div>
+        )}
+        {/* Step 2: Billing Information */}
+        {checkoutStep === 2 && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Billing Address</label>
+            <input
+              type="text"
+              placeholder="Address"
+              value={billingInfo.address}
+              onChange={e => setBillingInfo({ ...billingInfo, address: e.target.value })}
+              className="w-full border border-gray-300 rounded-lg p-3 mb-2"
+            />
+            <div className="flex gap-2 mb-2">
+              <input
+                type="text"
+                placeholder="City"
+                value={billingInfo.city}
+                onChange={e => setBillingInfo({ ...billingInfo, city: e.target.value })}
+                className="flex-1 border border-gray-300 rounded-lg p-3"
+              />
+              <input
+                type="text"
+                placeholder="ZIP Code"
+                value={billingInfo.zip}
+                onChange={e => setBillingInfo({ ...billingInfo, zip: e.target.value })}
+                className="w-32 border border-gray-300 rounded-lg p-3"
+              />
+            </div>
+            <input
+              type="text"
+              placeholder="Phone Number"
+              value={billingInfo.phone}
+              onChange={e => setBillingInfo({ ...billingInfo, phone: e.target.value })}
+              className="w-full border border-gray-300 rounded-lg p-3 mb-4"
+            />
+            <Button
+              onClick={() => setCheckoutStep(3)}
+              disabled={!billingInfo.address || !billingInfo.city || !billingInfo.zip || !billingInfo.phone}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
+            >
+              Next
+            </Button>
+          </div>
+        )}
+        {/* Step 3: Payment (simulate) */}
+        {checkoutStep === 3 && (
+          <div className="text-center">
+            {/* Order items summary */}
+            <div className="text-left mb-4 border border-gray-200 rounded-lg overflow-hidden">
+              {cart.length === 0 ? (
+                <div className="p-4 text-gray-600 text-sm">No items in cart.</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                        <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price</th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Line Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {cart.map(item => (
+                        <tr key={item.id}>
+                          <td className="px-4 py-2">
+                            <div className="font-medium text-gray-900">{item.name}</div>
+                            <div className="text-xs text-gray-500">{item.sku}</div>
+                          </td>
+                          <td className="px-4 py-2 text-center">{item.quantity}</td>
+                          <td className="px-4 py-2 text-right">₱{Number(item.price).toFixed(2)}</td>
+                          <td className="px-4 py-2 text-right font-semibold">₱{(item.quantity * Number(item.price)).toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+            <div className="mb-4">
+              <div className="text-lg font-semibold">Order Total:</div>
+              <div className="text-2xl font-bold text-blue-600 mb-2">₱{discountedTotal.toFixed(2)}</div>
+            </div>
+            <Button
+              onClick={async () => {
+                setPaymentProcessing(true)
+                await new Promise(res => setTimeout(res, 1500))
+                setPaymentProcessing(false)
+                setOrderConfirmation({
+                  customer: customers.find(c => c.id === selectedCustomer),
+                  billing: billingInfo,
+                  total: discountedTotal,
+                  items: cart
+                })
+                setCart([])
+                setCheckoutStep(4)
+              }}
+              disabled={paymentProcessing}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
+            >
+              {paymentProcessing ? 'Processing Payment...' : 'Pay'}
+            </Button>
+          </div>
+        )}
+        {/* Step 4: Confirmation */}
+        {checkoutStep === 4 && orderConfirmation && (
+          <div className="text-center">
+            <h3 className="text-2xl font-bold text-green-600 mb-2">Order Placed!</h3>
+            <p className="mb-4">Thank you, {orderConfirmation.customer?.name || 'Customer'}.</p>
+            <div className="mb-4">
+              <div className="font-semibold">Order Summary:</div>
+              <ul className="mb-2">
+                {orderConfirmation.items.map(item => (
+                  <li key={item.id} className="flex justify-between">
+                    <span>{item.name} x {item.quantity}</span>
+                    <span>₱{(item.quantity * Number(item.price)).toFixed(2)}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="flex justify-between font-bold">
+                <span>Total:</span>
+                <span>₱{orderConfirmation.total.toFixed(2)}</span>
+              </div>
+              <div className="mt-2 text-left text-sm text-gray-700">
+                <div><b>Billing Address:</b> {orderConfirmation.billing.address}, {orderConfirmation.billing.city}, {orderConfirmation.billing.zip}</div>
+                <div><b>Phone:</b> {orderConfirmation.billing.phone}</div>
         </div>
       </div>
+            <Button
+              onClick={() => setShowCheckoutModal(false)}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              Close
+            </Button>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }
@@ -399,3 +863,4 @@ export async function completeOrder(orderId) {
     alert('Error completing order: ' + error.message)
   }
 }
+
