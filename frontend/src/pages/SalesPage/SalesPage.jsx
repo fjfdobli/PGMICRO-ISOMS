@@ -28,6 +28,17 @@ export default function SalesPage() {
   const [billingInfo, setBillingInfo] = useState({ address: '', city: '', zip: '', phone: '' })
   const [paymentProcessing, setPaymentProcessing] = useState(false)
   const [orderConfirmation, setOrderConfirmation] = useState(null)
+  const [showAddCustomerModal, setShowAddCustomerModal] = useState(false)
+  const [newCustomer, setNewCustomer] = useState({
+    name: '',
+    email: '',
+    phone_number: '',
+    customer_type: 'Walk-in',
+    address: '',
+    city: '',
+    country: 'Philippines',
+    notes: ''
+  })
   // Mock recent orders data
   const recentOrders = [
     { id: 'SO-1001', date: '2024-09-01', status: 'Approved', total: 35000 },
@@ -236,6 +247,31 @@ export default function SalesPage() {
     setCart([])
   }
 
+  const addNewCustomer = () => {
+    if (!newCustomer.name || !newCustomer.email) {
+      showToast('Name and email are required', 'error')
+      return
+    }
+    const customer = {
+      id: Date.now().toString(),
+      ...newCustomer
+    }
+    setCustomers(prev => [...prev, customer])
+    setSelectedCustomer(customer.id)
+    setNewCustomer({
+      name: '',
+      email: '',
+      phone_number: '',
+      customer_type: 'Walk-in',
+      address: '',
+      city: '',
+      country: 'Philippines',
+      notes: ''
+    })
+    setShowAddCustomerModal(false)
+    showToast('Customer added successfully', 'success')
+  }
+
   const openProductModal = (product) => {
     setModalProduct(product)
     setShowProductModal(true)
@@ -364,13 +400,14 @@ export default function SalesPage() {
                     onChange={e => setCustomerForm(f => ({ ...f, phone_number: e.target.value }))}
                     className="border border-gray-300 rounded-lg p-3"
                   />
-                  <input
-                    type="text"
-                    placeholder="Customer Type"
-                    value={customerForm.customer_type}
-                    onChange={e => setCustomerForm(f => ({ ...f, customer_type: e.target.value }))}
-                    className="border border-gray-300 rounded-lg p-3"
-                  />
+        <select
+          value={customerForm.customer_type}
+          onChange={e => setCustomerForm(f => ({ ...f, customer_type: e.target.value }))}
+          className="border border-gray-300 rounded-lg p-3"
+        >
+          <option value="Walk-in">Walk-in</option>
+          <option value="Contract">Contract</option>
+        </select>
                   <input
                     type="text"
                     placeholder="Address"
@@ -402,7 +439,7 @@ export default function SalesPage() {
                 </div>
                 <div className="flex justify-end">
                   <Button
-                    onClick={() => navigate('/customers?add=true')}
+                    onClick={() => setShowAddCustomerModal(true)}
                     className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium ml-2"
                   >
                     Add New Customer
@@ -693,7 +730,7 @@ export default function SalesPage() {
               ))}
             </select>
             <Button
-              onClick={() => navigate('/customers?add=true')}
+              onClick={() => setShowAddCustomerModal(true)}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium mb-4"
             >
               Add New Customer
@@ -842,10 +879,94 @@ export default function SalesPage() {
             </Button>
           </div>
         )}
-      </Modal>
-    </div>
-  )
-}
+        </Modal>
+        
+        {/* Add Customer Modal */}
+        <Modal
+          isOpen={showAddCustomerModal}
+          onClose={() => setShowAddCustomerModal(false)}
+          title="Add New Customer"
+          size="md"
+        >
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input
+                type="text"
+                placeholder="Full Name *"
+                value={newCustomer.name}
+                onChange={e => setNewCustomer(f => ({ ...f, name: e.target.value }))}
+                className="border border-gray-300 rounded-lg p-3"
+              />
+              <input
+                type="email"
+                placeholder="Email *"
+                value={newCustomer.email}
+                onChange={e => setNewCustomer(f => ({ ...f, email: e.target.value }))}
+                className="border border-gray-300 rounded-lg p-3"
+              />
+              <input
+                type="text"
+                placeholder="Phone Number"
+                value={newCustomer.phone_number}
+                onChange={e => setNewCustomer(f => ({ ...f, phone_number: e.target.value }))}
+                className="border border-gray-300 rounded-lg p-3"
+              />
+              <select
+                value={newCustomer.customer_type}
+                onChange={e => setNewCustomer(f => ({ ...f, customer_type: e.target.value }))}
+                className="border border-gray-300 rounded-lg p-3"
+              >
+                <option value="Walk-in">Walk-in</option>
+                <option value="Contract">Contract</option>
+              </select>
+              <input
+                type="text"
+                placeholder="Address"
+                value={newCustomer.address}
+                onChange={e => setNewCustomer(f => ({ ...f, address: e.target.value }))}
+                className="border border-gray-300 rounded-lg p-3"
+              />
+              <input
+                type="text"
+                placeholder="City"
+                value={newCustomer.city}
+                onChange={e => setNewCustomer(f => ({ ...f, city: e.target.value }))}
+                className="border border-gray-300 rounded-lg p-3"
+              />
+              <input
+                type="text"
+                placeholder="Country"
+                value={newCustomer.country}
+                onChange={e => setNewCustomer(f => ({ ...f, country: e.target.value }))}
+                className="border border-gray-300 rounded-lg p-3"
+              />
+              <input
+                type="text"
+                placeholder="Notes"
+                value={newCustomer.notes}
+                onChange={e => setNewCustomer(f => ({ ...f, notes: e.target.value }))}
+                className="border border-gray-300 rounded-lg p-3"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                onClick={() => setShowAddCustomerModal(false)}
+                className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors font-medium"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={addNewCustomer}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                Add Customer
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      </div>
+    )
+  }
 
 // TODO: Move this to a proper API service when backend is ready
 export async function completeOrder(orderId) {
