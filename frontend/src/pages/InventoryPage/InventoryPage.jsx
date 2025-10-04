@@ -491,7 +491,7 @@ export default function InventoryPage() {
   // Filter items based on current filters
   const filteredItems = items.filter(item => {
     const searchTerm = filters.search.toLowerCase()
-    const matchesSearch = !filters.search ||
+    const matchesSearch = !filters.search || 
       (item.productDescription && item.productDescription.toLowerCase().includes(searchTerm)) ||
       (item.name && item.name.toLowerCase().includes(searchTerm)) ||
       (item.brand && item.brand.toLowerCase().includes(searchTerm)) ||
@@ -696,22 +696,22 @@ export default function InventoryPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {filters.showDamagedOnly ? 'Search Damaged Items' : 'Search Items'}
               </label>
-                <input
-                  type="text"
+              <input
+                type="text"
                   placeholder={filters.showDamagedOnly ? "Search damaged products..." : "Search by product, serial number, brand, model..."}
-                  value={filters.search || ''}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
-                />
+                value={filters.search || ''}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
+              />
             </div>
               {!filters.showDamagedOnly && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                  <select
-                    value={filters.category || ''}
-                    onChange={(e) => handleCategoryFilter(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
-                  >
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+              <select
+                value={filters.category || ''}
+                onChange={(e) => handleCategoryFilter(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
+              >
                     <option value="">All Categories ({availableItems.length} available)</option>
                     {categories.map(category => {
                       const categoryData = categoryStats[category] || { available: 0, total: 0, reorderPoint: 5 }
@@ -726,8 +726,8 @@ export default function InventoryPage() {
                         </option>
                       )
                     })}
-                  </select>
-                </div>
+              </select>
+            </div>
               )}
             <div className="flex items-end">
               <button
@@ -835,7 +835,7 @@ export default function InventoryPage() {
                                     <div className="flex items-center space-x-2">
                                       <span className="inline-flex px-2 py-1 text-xs font-bold rounded-full border-2 bg-red-100 text-red-800 border-red-300 animate-pulse">
                                         🔧 DAMAGED
-                                      </span>
+                          </span>
                                     </div>
                                     <div className="text-xs text-red-700 font-medium bg-red-50 px-2 py-1 rounded border border-red-200">
                                       Location: {item.location}
@@ -878,8 +878,8 @@ export default function InventoryPage() {
                             if (isDamaged && filters.showDamagedOnly) {
                               return (
                                 <div className="space-y-2">
-                                  <div className="flex space-x-2">
-                                    <button
+                          <div className="flex space-x-2">
+                            <button
                                       onClick={() => handleViewDetails(item)}
                                       className="text-blue-600 hover:text-blue-900 transition-colors text-xs"
                                       disabled={loading}
@@ -921,19 +921,19 @@ export default function InventoryPage() {
                                 </button>
                                 <button
                                   onClick={() => handleEdit(item)}
-                                  className="text-green-600 hover:text-green-900 transition-colors"
-                                  disabled={loading}
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteItem(item.id)}
-                                  className="text-red-600 hover:text-red-900 transition-colors"
-                                  disabled={loading}
-                                >
-                                  Delete
-                                </button>
-                              </div>
+                              className="text-green-600 hover:text-green-900 transition-colors"
+                              disabled={loading}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteItem(item.id)}
+                              className="text-red-600 hover:text-red-900 transition-colors"
+                              disabled={loading}
+                            >
+                              Delete
+                            </button>
+                          </div>
                             )
                           })()}
                         </td>
@@ -1049,25 +1049,25 @@ export default function InventoryPage() {
                   <div className="border-b pb-4">
                     <h3 className="text-lg font-medium text-gray-900 mb-3">Product Information</h3>
                     <div className="space-y-3">
-                      <div>
+                  <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Product Description *</label>
-                        <input
-                          type="text"
-                          required
+                    <input
+                      type="text"
+                      required
                           value={newItem.productDescription}
                           onChange={(e) => setNewItem({...newItem, productDescription: e.target.value})}
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        />
-                      </div>
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  </div>
                       <div className="grid grid-cols-2 gap-4">
-                        <div>
+                  <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Brand</label>
-                          <input
-                            type="text"
+                    <input
+                      type="text"
                             value={newItem.brand}
                             onChange={(e) => setNewItem({...newItem, brand: e.target.value})}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                          />
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
@@ -1078,34 +1078,34 @@ export default function InventoryPage() {
                             className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                           />
                         </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Purchase Price *</label>
-                          <input
-                            type="number"
-                            required
-                            min="0"
+                      <input
+                        type="number"
+                        required
+                        min="0"
                             step="0.01"
                             value={newItem.purchasePrice}
                             onChange={(e) => setNewItem({...newItem, purchasePrice: parseFloat(e.target.value) || 0})}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                          />
-                        </div>
-                        <div>
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Selling Price *</label>
-                          <input
-                            type="number"
-                            required
-                            min="0"
-                            step="0.01"
+                      <input
+                        type="number"
+                        required
+                        min="0"
+                        step="0.01"
                             value={newItem.sellingPrice}
                             onChange={(e) => setNewItem({...newItem, sellingPrice: parseFloat(e.target.value) || 0})}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                          />
-                        </div>
-                      </div>
-                      <div>
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                  <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Reorder Point</label>
                         <input
                           type="number"
@@ -1124,8 +1124,8 @@ export default function InventoryPage() {
                     <div className="space-y-3">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Serial Number *</label>
-                        <input
-                          type="text"
+                    <input
+                      type="text"
                           required
                           placeholder="e.g., ABC123456789, SN-2024-001"
                           value={newItem.serialNumber}
@@ -1141,10 +1141,10 @@ export default function InventoryPage() {
                             type="date"
                             value={newItem.dateReceived}
                             onChange={(e) => setNewItem({...newItem, dateReceived: e.target.value})}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                          />
-                        </div>
-                        <div>
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Item Status</label>
                           <select
                             value={newItem.itemStatus}
@@ -1196,9 +1196,9 @@ export default function InventoryPage() {
                             </div>
                             <div>
                               <label className="block text-xs font-medium text-blue-700 mb-1">Sale Price</label>
-                              <input
-                                type="number"
-                                min="0"
+                    <input
+                      type="number"
+                      min="0"
                                 step="0.01"
                                 value={newItem.salePrice}
                                 onChange={(e) => setNewItem({...newItem, salePrice: parseFloat(e.target.value) || 0})}
@@ -1232,11 +1232,11 @@ export default function InventoryPage() {
                           placeholder="e.g., 1 year, 6 months"
                           value={newItem.warrantyDuration}
                           onChange={(e) => setNewItem({...newItem, warrantyDuration: e.target.value})}
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        />
-                      </div>
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  </div>
                       <div className="grid grid-cols-2 gap-4">
-                        <div>
+                  <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Warranty Start Date</label>
                           <input
                             type="date"
@@ -1316,13 +1316,13 @@ export default function InventoryPage() {
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Damage Description</label>
-                            <textarea
+                    <textarea
                               rows="2"
                               placeholder="Describe the damage in detail..."
                               value={newItem.damageDescription}
                               onChange={(e) => setNewItem({...newItem, damageDescription: e.target.value})}
-                              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                            />
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
                           </div>
                         </>
                       )}
@@ -1406,7 +1406,7 @@ export default function InventoryPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
-                </div>
+      </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Basic Information */}
