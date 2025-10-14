@@ -413,7 +413,10 @@ function Layout({ children, user: userProp, onLogout }) {
                 key={item.name}
                 onClick={() => {
                   navigate(item.href)
-                  setSidebarOpen(false)
+                  // Only close sidebar on mobile (screen width < 1024px)
+                  if (window.innerWidth < 1024) {
+                    setSidebarOpen(false)
+                  }
                 }}
                 className={`w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group ${
                   isCurrentPage(item.href)
