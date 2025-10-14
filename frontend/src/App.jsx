@@ -102,7 +102,7 @@ function ProtectedRoute({ children, requiredModule, user }) {
 function Layout({ children, user: userProp, onLogout }) {
   const dispatch = useDispatch()
   const { items: notifications, unreadCount } = useSelector(state => state.notifications)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(true) // Start open by default
   const [showNotifications, setShowNotifications] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [user, setUser] = useState(null)
@@ -348,11 +348,42 @@ function Layout({ children, user: userProp, onLogout }) {
   }
 
   return (
-    <div className="h-screen flex bg-gray-50">
+    <div className="h-screen flex bg-gray-50 relative">
+      {/* Floating Open Button - Shows when sidebar is closed on desktop */}
+      {!sidebarOpen && (
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="hidden lg:flex fixed top-24 left-2 z-50 items-center justify-center w-8 h-12 bg-white border-2 border-blue-500 rounded-r-lg shadow-xl hover:bg-blue-50 hover:border-blue-600 transition-all duration-200"
+          title="Open sidebar"
+        >
+          <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      )}
+
       {/* Sidebar */}
-      <div className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform lg:translate-x-0 lg:static lg:inset-0 transition-all duration-300 ease-in-out`}>
+      <div className={`${sidebarOpen ? 'w-64' : 'w-0'} fixed inset-y-0 left-0 z-40 bg-white shadow-xl transform transition-all duration-300 ease-in-out lg:static overflow-hidden`}>
+        {/* Desktop Toggle Button - Shows when sidebar is open */}
+        {sidebarOpen && (
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="hidden lg:flex absolute top-24 -right-4 z-50 items-center justify-center w-8 h-12 bg-white border-2 border-blue-500 rounded-r-lg shadow-xl hover:bg-blue-50 hover:border-blue-600 transition-all duration-200 group"
+            title="Close sidebar"
+          >
+            <svg 
+              className="w-5 h-5 text-blue-600 group-hover:text-blue-700" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+        )}
+
         {/* Logo */}
-        <div className="flex items-center justify-center h-16 px-4 bg-gradient-to-r from-blue-600 to-blue-700">
+        <div className={`flex items-center justify-between h-16 px-4 bg-gradient-to-r from-blue-600 to-blue-700 ${sidebarOpen ? '' : 'opacity-0 pointer-events-none'}`}>
           <div className="flex items-center">
             <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center mr-3">
               <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -360,13 +391,22 @@ function Layout({ children, user: userProp, onLogout }) {
               </svg>
             </div>
             <div className="text-white">
-              <div className="text-lg font-bold">PG Micro ISOMS</div>
+              <div className="text-lg font-bold whitespace-nowrap">PG Micro ISOMS</div>
             </div>
           </div>
+          {/* Mobile close button */}
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden p-2 text-white hover:bg-white/20 rounded-lg transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
         {/* Navigation */}
-        <nav className="mt-8 px-4 pb-4">
+        <nav className={`mt-8 px-4 pb-4 ${sidebarOpen ? '' : 'opacity-0 pointer-events-none'}`}>
           <div className="space-y-2">
             {navigationItems.map((item) => (
               <button
@@ -384,7 +424,7 @@ function Layout({ children, user: userProp, onLogout }) {
                 <span className={`mr-3 transition-colors duration-200 ${isCurrentPage(item.href) ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'}`}>
                   {item.icon}
                 </span>
-                <span className="flex-1 text-left">{item.name}</span>
+                <span className="flex-1 text-left whitespace-nowrap">{item.name}</span>
                 {item.badge && (
                   <span className={`inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white rounded-full ${item.badgeColor || 'bg-red-500'}`}>
                     {item.badge}
@@ -396,7 +436,7 @@ function Layout({ children, user: userProp, onLogout }) {
         </nav>
 
         {/* User Info Footer */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gray-50 border-t border-gray-200">
+        <div className={`absolute bottom-0 left-0 right-0 p-4 bg-gray-50 border-t border-gray-200 ${sidebarOpen ? '' : 'opacity-0 pointer-events-none'}`}>
           <div className="flex items-center">
             <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
               <span className="text-white font-semibold text-sm">
@@ -426,15 +466,17 @@ function Layout({ children, user: userProp, onLogout }) {
         <header className="bg-white shadow-sm border-b border-gray-200 backdrop-blur-sm bg-white/95 relative z-40">
           <div className="flex items-center justify-between px-4 py-3 sm:px-6">
             <div className="flex items-center">
-              {/* Mobile menu button */}
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="lg:hidden -ml-2 mr-3 p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
-              >
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </button>
+              {/* Mobile menu button - Only show when sidebar is closed */}
+              {!sidebarOpen && (
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="lg:hidden -ml-2 mr-3 p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+                >
+                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                </button>
+              )}
 
               {/* Page title */}
               <div>

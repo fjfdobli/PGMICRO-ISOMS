@@ -39,68 +39,41 @@ export default function SalesPage() {
     country: 'Philippines',
     notes: ''
   })
-  // Mock recent orders data
-  const recentOrders = [
-    { id: 'SO-1001', date: '2024-09-01', status: 'Approved', total: 35000 },
-    { id: 'SO-1000', date: '2024-08-28', status: 'Declined', total: 12000 },
-    { id: 'SO-0999', date: '2024-08-25', status: 'Pending', total: 18000 },
-  ]
+  
+  // Recent orders - to be fetched from API
+  const [recentOrders, setRecentOrders] = useState([])
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
       try {
-        // Static inventory data (from InventoryPage)
-        const inventory = [
-          { id: 1, productDescription: "Intel Core i9-14900K Processor", serialNumber: "INT-I914900K-001", brand: "Intel", model: "Core i9-14900K", category: "Processor", purchasePrice: 28000, sellingPrice: 35000, itemStatus: "available", location: "CPU Storage A-1", dateReceived: "2024-01-15", warrantyDuration: "3 years", warrantyStartDate: "2024-01-15", warrantyEndDate: "2027-01-15", reorderPoint: 2 },
-          { id: 4, productDescription: "ASUS ROG STRIX Z790-E Gaming WiFi", serialNumber: "AS-Z790E-004", brand: "ASUS", model: "ROG STRIX Z790-E", category: "Motherboards", purchasePrice: 18000, sellingPrice: 24000, itemStatus: "available", location: "Motherboard Storage B-1", dateReceived: "2024-01-12", warrantyDuration: "3 years", reorderPoint: 2 },
-          { id: 6, productDescription: "Gigabyte B760 AORUS ELITE AX", serialNumber: "GB-B760AE-006", brand: "Gigabyte", model: "B760 AORUS ELITE AX", category: "Motherboards", purchasePrice: 10000, sellingPrice: 14000, itemStatus: "available", location: "Motherboard Storage B-2", dateReceived: "2024-01-16", warrantyDuration: "3 years", reorderPoint: 3 },
-          { id: 7, productDescription: "NVIDIA GeForce RTX 4090 24GB", serialNumber: "NV-RTX4090-007", brand: "NVIDIA", model: "GeForce RTX 4090", category: "Video Cards", purchasePrice: 85000, sellingPrice: 95000, itemStatus: "available", location: "GPU Storage Premium", dateReceived: "2024-01-10", warrantyDuration: "3 years", reorderPoint: 1 },
-          { id: 9, productDescription: "NVIDIA GeForce RTX 4070 12GB", serialNumber: "NV-RTX4070-009", brand: "NVIDIA", model: "GeForce RTX 4070", category: "Video Cards", purchasePrice: 28000, sellingPrice: 34000, itemStatus: "available", location: "GPU Storage A-1", dateReceived: "2024-01-12", warrantyDuration: "3 years", reorderPoint: 2 },
-          { id: 10, productDescription: "ASUS ROG Swift PG27AQN 27inch 360Hz", serialNumber: "AS-PG27AQN-010", brand: "ASUS", model: "ROG Swift PG27AQN", category: "Monitors", purchasePrice: 45000, sellingPrice: 52000, itemStatus: "available", location: "Monitor Display Area", dateReceived: "2024-01-15", warrantyDuration: "3 years", reorderPoint: 1 },
-          { id: 12, productDescription: "Samsung Odyssey G7 32inch Curved", serialNumber: "SM-ODG732-012", brand: "Samsung", model: "Odyssey G7 32", category: "Monitors", purchasePrice: 28000, sellingPrice: 35000, itemStatus: "available", location: "Monitor Display Area", dateReceived: "2024-01-18", warrantyDuration: "1 year", reorderPoint: 2 },
-          { id: 13, productDescription: "ASUS ROG Zephyrus G16 Gaming Laptop", serialNumber: "AS-ROGG16-013", brand: "ASUS", model: "ROG Zephyrus G16", category: "Laptops", purchasePrice: 95000, sellingPrice: 110000, itemStatus: "available", location: "Laptop Showroom A-1", dateReceived: "2024-01-14", warrantyDuration: "2 years", reorderPoint: 1 },
-          { id: 15, productDescription: "Dell XPS 15 OLED Touch Laptop", serialNumber: "DL-XPS15OLED-015", brand: "Dell", model: "XPS 15 OLED", category: "Laptops", purchasePrice: 85000, sellingPrice: 98000, itemStatus: "available", location: "Laptop Showroom A-2", dateReceived: "2024-01-13", warrantyDuration: "1 year", reorderPoint: 2 },
-          { id: 16, productDescription: "HP LaserJet Pro M404dw Wireless", serialNumber: "HP-M404DW-016", brand: "HP", model: "LaserJet Pro M404dw", category: "Printers", purchasePrice: 12000, sellingPrice: 16000, itemStatus: "available", location: "Printer Storage C-1", dateReceived: "2024-01-16", warrantyDuration: "1 year", reorderPoint: 3 },
-          { id: 19, productDescription: "HP 414A Black Toner Cartridge", serialNumber: "HP-414ABK-019", brand: "HP", model: "414A Black", category: "Toners", purchasePrice: 3500, sellingPrice: 4800, itemStatus: "available", location: "Consumables Storage D-1", dateReceived: "2024-01-11", warrantyDuration: "6 months", reorderPoint: 10 },
-          { id: 20, productDescription: "Canon 046H Cyan High Yield Toner", serialNumber: "CN-046HC-020", brand: "Canon", model: "046H Cyan", category: "Toners", purchasePrice: 4200, sellingPrice: 5500, itemStatus: "available", location: "Consumables Storage D-1", dateReceived: "2024-01-12", warrantyDuration: "6 months", reorderPoint: 8 },
-          { id: 21, productDescription: "Brother TN-2480 Black Toner", serialNumber: "BR-TN2480-021", brand: "Brother", model: "TN-2480", category: "Toners", purchasePrice: 2800, sellingPrice: 3800, itemStatus: "available", location: "Consumables Storage D-2", dateReceived: "2024-01-14", warrantyDuration: "6 months", reorderPoint: 12 },
-          { id: 22, productDescription: "Canon PGI-280XL Black Ink", serialNumber: "CN-PGI280XL-022", brand: "Canon", model: "PGI-280XL Black", category: "Inks", purchasePrice: 1200, sellingPrice: 1800, itemStatus: "available", location: "Consumables Storage D-3", dateReceived: "2024-01-15", warrantyDuration: "3 months", reorderPoint: 20 }
-        ]
-        // Only include available items
-        const availableProducts = inventory.filter(item => item.itemStatus === 'available').map(item => ({
-          id: item.id,
-          name: item.productDescription,
-          sku: item.serialNumber,
-          price: item.sellingPrice,
-          stock: 1,
-          description: `${item.brand} ${item.model} (${item.category})\nLocation: ${item.location}`
-        }))
-        setCustomers([
-          {
-            id: '1',
-            name: 'Juan Dela Cruz',
-            email: 'juan.delacruz@email.com',
-            phone_number: '+63 912 345 6789',
-            customer_type: 'Regular',
-            address: '123 Mabini St.',
-            city: 'Manila',
-            country: 'Philippines',
-            notes: 'VIP customer, prefers COD.'
-          },
-          {
-            id: '2',
-            name: 'Juan Dela Cruz',
-            email: 'juan.delacruz@email.com',
-            phone_number: '+63 912 345 6789',
-            customer_type: 'Regular',
-            address: '123 Mabini St.',
-            city: 'Manila',
-            country: 'Philippines',
-            notes: 'VIP customer, prefers COD.'
-          }
-        ])
-        setProducts(availableProducts)
+        // TODO: Replace with actual API call when backend endpoint is ready
+        // Fetch available products from inventory
+        // const response = await fetch('http://localhost:3002/api/inventory?status=available', {
+        //   headers: {
+        //     'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        //   }
+        // })
+        // const inventoryData = await response.json()
+        // const availableProducts = inventoryData.map(item => ({
+        //   id: item.id,
+        //   name: item.productDescription,
+        //   sku: item.serialNumber,
+        //   price: item.sellingPrice,
+        //   stock: 1,
+        //   description: `${item.brand} ${item.model} (${item.category})\nLocation: ${item.location}`
+        // }))
+        
+        // Fetch customers
+        // const customersResponse = await fetch('http://localhost:3002/api/customers', {
+        //   headers: {
+        //     'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        //   }
+        // })
+        // const customersData = await customersResponse.json()
+        
+        setCustomers([])
+        setProducts([])
       } catch (error) {
         console.error('Error fetching data:', error)
         setCustomers([])
