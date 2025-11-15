@@ -1,0 +1,274 @@
+<script type="application/json" id="endpoints-data">
+<%- JSON.stringify(endpoints) %>
+</script>
+
+<script>
+  const endpointsData = JSON.parse(document.getElementById('endpoints-data').textContent);
+
+  function showEndpoint(endpointId) {
+    const endpoint = endpointsData.find(ep => ep.id === endpointId);
+    if (!endpoint) return;
+
+    document.querySelectorAll('.endpoint-item').forEach(item => {
+      item.classList.remove('active');
+    });
+    document.querySelector(`[data-endpoint="${endpointId}"]`).classList.add('active');
+
+    window.history.pushState({}, '', `/docs/${endpointId}`);
+
+    const welcome = document.getElementById('welcome');
+    if (welcome) welcome.style.display = 'none';
+
+    renderEndpointDetail(endpoint);
+  }
+
+  function renderEndpointDetail(endpoint) {
+    const contentArea = document.getElementById('contentArea');
+    const methodClass = `method-${endpoint.method.toLowerCase()}`;
+    const authBadge = endpoint.requiresAuth ? '<span class="auth-badge">🔒 Requires Authentication</span>' : '';
+
+    let paramsHtml = '';
+    if (endpoint.parameters && endpoint.parameters.length > 0) {
+      paramsHtml = `
+        <h3 class="section-subtitle">Parameters</h3>
+        <table class="params-table">
+          <thead>
+            <tr>
+              <th>Parameter</th>
+              <th>Type</th>
+              <th>Required</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${endpoint.parameters.map(p => `
+              <tr>
+                <td><span class="param-name">${p.name}</span></td>
+                <td><span class="param-type">${p.type}</span></td>
+                <td>${p.required ? '<span class="param-required">Required</span>' : '<span class="param-optional">Optional</span>'}</td>
+                <td>${p.description}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    let headersHtml = '';
+    if (endpoint.headers && endpoint.headers.length > 0) {
+      headersHtml = `
+        <h3 class="section-subtitle">Headers</h3>
+        <table class="params-table">
+          <thead>
+            <tr>
+              <th>Header Name</th>
+              <th>Example Value</th>
+              <th>Required</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${endpoint.headers.map(h => `
+              <tr>
+                <td><span class="param-name">${h.name}</span></td>
+                <td><code>${h.value}</code></td>
+                <td>${h.required ? '<span class="param-required">Required</span>' : '<span class="param-optional">Optional</span>'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    const requestBodyHtml = endpoint.requestBody ? `
+      <h3 class="section-subtitle">Request Body</h3>
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="code-language">JSON</span>
+          <button class="copy-btn" onclick="copyCode('request-${endpoint.id}')">Copy</button>
+        </div>
+        <pre id="request-${endpoint.id}">${JSON.stringify(endpoint.requestBody, null, 2)}</pre>
+      </div>
+    ` : '<div class="empty-state"><div class="empty-state-icon">📭</div><p>No request body required</p></div>';
+
+    const responseHtml = `
+      <h3 class="section-subtitle">Example Response (200 OK)</h3>
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="code-language">JSON</span>
+          <button class="copy-btn" onclick="copyCode('response-${endpoint.id}')">Copy</button>
+        </div>
+        <pre id="response-${endpoint.id}">${JSON.stringify(endpoint.exampleResponse, null, 2)}</pre>
+      </div>
+    `;
+
+    const testHtml = `
+      <div class="test-section">
+        <h3 class="section-subtitle">Interactive Testing</h3>
+        ${endpoint.requiresAuth ? `
+          <div class="input-group">
+            <label class="input-label">Authorization Token</label>
+            <input type="text" class="input-field" id="authToken" placeholder="Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+          </div>
+        ` : ''}
+        ${endpoint.method === 'POST' ? `
+          <div class="input-group">
+            <label class="input-label">Request Body (JSON)</label>
+            <textarea class="input-field" id="requestBody">${JSON.stringify(endpoint.requestBody || {}, null, 2)}</textarea>
+          </div>
+        ` : ''}
+        <button class="btn btn-primary" onclick="testEndpoint('${endpoint.id}')">
+        Send Request
+        </button>
+        <div id="testResponse"></div>
+      </div>
+    `;
+
+    contentArea.innerHTML = `
+      <div class="endpoint-detail">
+        <div class="detail-header">
+          <div class="detail-title">
+            <span class="method-badge ${methodClass}">${endpoint.method}</span>
+            <h2>${endpoint.name}</h2>
+            ${authBadge}
+          </div>
+          <div class="endpoint-url-display">
+            <span class="method-badge">${endpoint.method}</span>
+            <span class="endpoint-url-text">${endpoint.fullUrl || window.location.origin + endpoint.path}</span>
+            <button class="copy-btn" onclick="copyToClipboard('${endpoint.fullUrl || window.location.origin + endpoint.path}')">Copy URL</button>
+          </div>
+          <p class="detail-description">${endpoint.description}</p>
+        </div>
+
+        <div class="tabs-container">
+          <div class="tabs-header">
+            <button class="tab active" onclick="switchTab(event, 'params-tab')">Parameters</button>
+            <button class="tab" onclick="switchTab(event, 'headers-tab')">Headers</button>
+            <button class="tab" onclick="switchTab(event, 'body-tab')">Request Body</button>
+            <button class="tab" onclick="switchTab(event, 'response-tab')">Response</button>
+            <button class="tab" onclick="switchTab(event, 'test-tab')">Try It</button>
+          </div>
+
+          <div class="tab-content">
+            <div class="tab-panel active" id="params-tab">
+              ${paramsHtml || '<div class="empty-state"><div class="empty-state-icon">📋</div><p>No parameters required for this endpoint</p></div>'}
+            </div>
+            <div class="tab-panel" id="headers-tab">
+              ${headersHtml || '<div class="empty-state"><div class="empty-state-icon">📨</div><p>No special headers required</p></div>'}
+            </div>
+            <div class="tab-panel" id="body-tab">
+              ${requestBodyHtml}
+            </div>
+            <div class="tab-panel" id="response-tab">
+              ${responseHtml}
+            </div>
+            <div class="tab-panel" id="test-tab">
+              ${testHtml}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function switchTab(event, tabName) {
+    const container = event.currentTarget.closest('.tabs-container');
+    container.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+
+    container.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+    container.querySelector(`#${tabName}`).classList.add('active');
+  }
+
+  async function testEndpoint(endpointId) {
+    const endpoint = endpointsData.find(ep => ep.id === endpointId);
+    const responseDiv = document.getElementById('testResponse');
+
+    try {
+      const options = {
+        method: endpoint.method,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      };
+
+      if (endpoint.requiresAuth) {
+        const token = document.getElementById('authToken').value;
+        if (token) {
+          options.headers['Authorization'] = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+        }
+      }
+
+      if (endpoint.method === 'POST' && document.getElementById('requestBody')) {
+        options.body = document.getElementById('requestBody').value;
+      }
+
+      const response = await fetch(endpoint.path, options);
+      const data = await response.json();
+
+      const statusClass = response.ok ? 'status-success' : 'status-error';
+      responseDiv.innerHTML = `
+        <div class="response-section">
+          <div class="response-header">
+            <h4>Response</h4>
+            <span class="response-status ${statusClass}">${response.status} ${response.statusText}</span>
+          </div>
+          <div class="code-block">
+            <div class="code-block-header">
+              <span class="code-language">JSON Response</span>
+              <button class="copy-btn" onclick="copyCode('test-response')">Copy</button>
+            </div>
+            <pre id="test-response">${JSON.stringify(data, null, 2)}</pre>
+          </div>
+        </div>
+      `;
+    } catch (error) {
+      responseDiv.innerHTML = `
+        <div class="response-section">
+          <div class="response-header">
+            <h4>Error</h4>
+            <span class="response-status status-error">Request Failed</span>
+          </div>
+          <div class="code-block">
+            <pre>${error.message}</pre>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+      event.currentTarget.textContent = '✓ Copied!';
+      setTimeout(() => {
+        event.currentTarget.textContent = 'Copy URL';
+      }, 2000);
+    });
+  }
+
+  function copyCode(elementId) {
+    const code = document.getElementById(elementId).textContent;
+    navigator.clipboard.writeText(code).then(() => {
+      event.currentTarget.textContent = '✓ Copied!';
+      setTimeout(() => {
+        event.currentTarget.textContent = 'Copy';
+      }, 2000);
+    });
+  }
+
+  // Search functionality
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase();
+      document.querySelectorAll('.endpoint-item').forEach(item => {
+        const name = item.querySelector('.endpoint-name').textContent.toLowerCase();
+        item.style.display = name.includes(query) ? 'flex' : 'none';
+      });
+    });
+  }
+
+  // Handle back/forward navigation
+  window.addEventListener('popstate', () => {
+    location.reload();
+  });
+</script>

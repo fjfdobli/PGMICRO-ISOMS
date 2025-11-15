@@ -1,0 +1,246 @@
+<div class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-title">API Reference</div>
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" class="search-input" placeholder="Search endpoints..." id="searchInput">
+    </div>
+  </div>
+
+  <% 
+  const groupedEndpoints = {};
+  endpoints.forEach(ep => {
+    if (!groupedEndpoints[ep.category]) {
+      groupedEndpoints[ep.category] = [];
+    }
+    groupedEndpoints[ep.category].push(ep);
+  });
+  %>
+
+  <% Object.keys(groupedEndpoints).forEach(category => { %>
+    <div class="sidebar-section <%= groupedEndpoints[category].length === 0 ? 'coming-soon' : '' %>">
+      <div class="section-header">
+        <span class="section-title"><%= category %></span>
+        <span class="section-count"><%= groupedEndpoints[category].length %></span>
+      </div>
+      <% if (groupedEndpoints[category].length > 0) { %>
+        <div class="endpoint-list">
+          <% groupedEndpoints[category].forEach(endpoint => { %>
+            <div class="endpoint-item <%= activeEndpoint === endpoint.id ? 'active' : '' %>" 
+                 data-endpoint="<%= endpoint.id %>"
+                 onclick="showEndpoint('<%= endpoint.id %>')">
+              <span class="method-badge method-<%= endpoint.method.toLowerCase() %>">
+                <%= endpoint.method %>
+              </span>
+              <span class="endpoint-name"><%= endpoint.name %></span>
+              <% if (endpoint.requiresAuth) { %>
+                <span class="endpoint-lock">🔒</span>
+              <% } %>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </div>
+  <% }) %>
+</div>
+
+<style>
+  .sidebar {
+    position: fixed;
+    top: 64px;
+    left: 0;
+    width: 320px;
+    height: calc(100vh - 64px);
+    background: #ffffff;
+    border-right: 1px solid var(--gray-200);
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .sidebar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .sidebar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .sidebar::-webkit-scrollbar-thumb {
+    background: var(--gray-300);
+    border-radius: 3px;
+  }
+
+  .sidebar::-webkit-scrollbar-thumb:hover {
+    background: var(--gray-400);
+  }
+
+  .sidebar-header {
+    padding: 24px 24px 20px;
+    border-bottom: 1px solid var(--gray-200);
+    background: var(--gray-50);
+  }
+
+  .sidebar-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 12px;
+  }
+
+  .search-box {
+    position: relative;
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 10px 12px 10px 36px;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    font-size: 14px;
+    background: white;
+    transition: all 0.2s;
+  }
+
+  .search-input:focus {
+    outline: none;
+    border-color: var(--primary-500);
+    box-shadow: 0 0 0 3px var(--primary-50);
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gray-400);
+    font-size: 16px;
+  }
+
+  .sidebar-section {
+    padding: 16px 0;
+    border-bottom: 1px solid var(--gray-100);
+  }
+
+  .section-header {
+    padding: 8px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .section-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gray-600);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+
+  .section-count {
+    font-size: 11px;
+    color: var(--gray-400);
+    background: var(--gray-100);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 600;
+  }
+
+  .endpoint-list {
+    padding: 4px 0;
+  }
+
+  .endpoint-item {
+    padding: 10px 24px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+  }
+
+  .endpoint-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: transparent;
+    transition: all 0.2s;
+  }
+
+  .endpoint-item:hover {
+    background: var(--gray-50);
+  }
+
+  .endpoint-item.active {
+    background: var(--primary-50);
+  }
+
+  .endpoint-item.active::before {
+    background: var(--primary-500);
+  }
+
+  .endpoint-item.active .endpoint-name {
+    color: var(--primary-700);
+    font-weight: 600;
+  }
+
+  .method-badge {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-width: 52px;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .method-get { 
+    background: var(--info-50);
+    color: var(--info-600);
+    border: 1px solid var(--info-200);
+  }
+  
+  .method-post { 
+    background: var(--success-50);
+    color: var(--success-600);
+    border: 1px solid var(--success-200);
+  }
+  
+  .method-put { 
+    background: var(--warning-50);
+    color: var(--warning-600);
+    border: 1px solid var(--warning-200);
+  }
+  
+  .method-delete { 
+    background: var(--error-50);
+    color: var(--error-600);
+    border: 1px solid var(--error-200);
+  }
+
+  .endpoint-name {
+    font-size: 13px;
+    color: var(--gray-700);
+    flex: 1;
+    font-weight: 500;
+  }
+
+  .endpoint-lock {
+    font-size: 12px;
+    color: var(--gray-400);
+  }
+
+  .coming-soon {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+</style>

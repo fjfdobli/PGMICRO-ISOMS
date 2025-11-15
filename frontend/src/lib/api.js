@@ -22,6 +22,19 @@ const handleResponse = async (response) => {
   const data = await response.json();
   
   if (!response.ok) {
+    if (response.status === 401 && (data.code === 'TOKEN_EXPIRED' || data.code === 'TOKEN_INVALID')) {
+      localStorage.removeItem('authToken');
+      
+      if (window.location.pathname !== '/' && window.location.pathname !== '/login') {
+        window.location.href = '/';
+      }
+      
+      const error = new Error(data.message || 'Session expired. Please log in again.');
+      error.response = { data };
+      error.code = data.code;
+      throw error;
+    }
+    
     const error = new Error(data.error || `HTTP error! status: ${response.status}`);
     error.response = { data };
     throw error;

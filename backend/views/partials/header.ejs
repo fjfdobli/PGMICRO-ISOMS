@@ -1,0 +1,19 @@
+<div class="top-nav">
+  <div class="nav-brand">
+    <div class="brand-logo">PM</div>
+    <div class="brand-info">
+      <h1>PG Micro ISOMS API Platform</h1>
+      <p>Enterprise Resource Planning System</p>
+    </div>
+  </div>
+  <div class="nav-actions">
+    <div class="server-badge">
+      <div class="status-dot"></div>
+      <span><%= serverUrl %></span>
+    </div>
+    <% if (environment !== 'production') { %>
+      <div class="env-badge"><%= environment.toUpperCase() %></div>
+    <% } %>
+    <div class="version-badge">v<%= version %></div>
+  </div>
+</div>

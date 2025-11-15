@@ -48,7 +48,6 @@ export default function Layout({ children }) {
 
   const isAdmin = user?.account_type === 'admin'
   const userDisplayName = user ? `${user.first_name} ${user.last_name}` : ''
-
   const toggleSidebar = () => {
     console.log('🍔 Toggle sidebar clicked! Current state:', isSidebarOpen, '→ New state:', !isSidebarOpen)
     setIsSidebarOpen(!isSidebarOpen)
@@ -105,6 +104,8 @@ export default function Layout({ children }) {
             <NavItem to="/customers" label="Customers" />
             <NavItem to="/suppliers" label="Suppliers" />
             {isAdmin && <NavItem to="/users" label="Users" />}
+            {isAdmin && <NavItem to="/api-docs" label="API Docs" />}
+            <div className="px-3 py-2 text-xs text-gray-400">v2.0</div>
           </nav>
         </aside>
 

@@ -957,4 +957,3 @@ export async function completeOrder(orderId) {
     alert('Error completing order: ' + error.message)
   }
 }
-

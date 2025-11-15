@@ -317,7 +317,26 @@ router.get('/me', async (req, res) => {
       })
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+    let decoded
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET)
+    } catch (err) {
+      if (err.name === 'TokenExpiredError') {
+        return res.status(401).json({ 
+          error: 'Token expired',
+          message: 'Your session has expired. Please log in again.',
+          code: 'TOKEN_EXPIRED'
+        })
+      }
+      if (err.name === 'JsonWebTokenError') {
+        return res.status(401).json({ 
+          error: 'Invalid token',
+          message: 'Your session is invalid. Please log in again.',
+          code: 'TOKEN_INVALID'
+        })
+      }
+      throw err
+    }
     
     const [users] = await pool.execute(
       'SELECT id, email, first_name, last_name, account_type, status, created_at, last_login, phone, address, allowed_modules FROM accounts WHERE id = ? AND status = "active"',
@@ -811,7 +830,6 @@ router.post('/contact', async (req, res) => {
         </div>
       `
     } else {
-      // Fallback to plain text formatting
       emailHtmlContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px;">
