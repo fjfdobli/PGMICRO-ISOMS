@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
-import { authAPI } from './lib/api'
-import { markAsRead } from './lib/slices/notificationSlice'
+import api, { authAPI } from './lib/api'
+import { fetchNotifications, fetchUnreadCount, markNotificationAsRead, markAllNotificationsAsRead, deleteNotification, clearReadNotifications } from './lib/slices/notificationSlice'
+import { fetchUsers, fetchUnreadCount as fetchChatUnreadCount, getOrCreateConversation, setActiveConversation } from './lib/slices/chatSlice'
+import { setUser as setReduxUser } from './lib/slices/authSlice'
 import DashboardPage from './pages/DashboardPage/DashboardPage'
 import SalesPage from './pages/SalesPage/SalesPage'
 import PurchaseOrdersPage from './pages/PurchaseOrdersPage/PurchaseOrdersPage'
@@ -16,23 +18,21 @@ import SystemSettingsPage from './pages/SystemSettingsPage/SystemSettingsPage'
 import HelpSupportPage from './pages/HelpSupportPage/HelpSupportPage'
 import ApiDocsPage from './pages/ApiDocsPage/ApiDocsPage'
 import AuthContainer from './pages/AuthContainer/AuthContainer'
+import ChatContainer from './components/Chat/ChatContainer'
 
 function ProtectedRoute({ children, requiredModule, user }) {
   const navigate = useNavigate()
 
   useEffect(() => {
-    // Admin can access everything
     if (user?.account_type === 'admin') {
       return
     }
 
-    // Special case for users module - admin only
     if (requiredModule === 'users') {
       navigate('/')
       return
     }
 
-    // Check if user has access to this module
     const userModules = user?.allowed_modules || []
     if (requiredModule && !userModules.includes(requiredModule)) {
       const firstAvailableModule = userModules[0]
@@ -52,12 +52,10 @@ function ProtectedRoute({ children, requiredModule, user }) {
     }
   }, [user, requiredModule, navigate])
 
-  // Admin can access everything
   if (user?.account_type === 'admin') {
     return children
   }
 
-  // Special case for users module - admin only
   if (requiredModule === 'users') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -74,7 +72,6 @@ function ProtectedRoute({ children, requiredModule, user }) {
     )
   }
 
-  // Check if user has access to this module
   const userModules = user?.allowed_modules || []
   console.log('ProtectedRoute check:', { requiredModule, userModules, hasAccess: userModules.includes(requiredModule) })
   
@@ -99,26 +96,68 @@ function ProtectedRoute({ children, requiredModule, user }) {
 
 function Layout({ children, user: userProp, onLogout }) {
   const dispatch = useDispatch()
-  const { items: notifications, unreadCount } = useSelector(state => state.notifications)
-  const [sidebarOpen, setSidebarOpen] = useState(true) // Start open by default
+  const { notifications = [], unreadCount = 0, loading, error } = useSelector(state => state.notifications || {})
+  const { unreadCount: chatUnreadCount = 0, users: chatUsers = [] } = useSelector(state => state.chat || {})
+  const [sidebarOpen, setSidebarOpen] = useState(true) 
   const [showNotifications, setShowNotifications] = useState(false)
+  const [showChatList, setShowChatList] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [user, setUser] = useState(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [userStatus, setUserStatus] = useState('online')
   const location = useLocation()
   const navigate = useNavigate()
 
-  // Close dropdowns when clicking outside
+  useEffect(() => {
+    if (userProp) {
+      // Fetch notifications
+      dispatch(fetchNotifications())
+      dispatch(fetchUnreadCount())
+      
+      // Fetch chat data
+      dispatch(fetchUsers())
+      dispatch(fetchChatUnreadCount())
+      
+      // Send heartbeat to update last_login for real-time activity
+      const sendHeartbeat = async () => {
+        try {
+          await api.auth.heartbeat?.()
+        } catch (error) {
+          console.error('Heartbeat failed:', error)
+        }
+      }
+      
+      // Initial heartbeat
+      sendHeartbeat()
+      
+      const pollInterval = setInterval(() => {
+        // Poll notifications every 30 seconds
+        dispatch(fetchUnreadCount())
+        dispatch(fetchNotifications({ limit: 50 }))
+        
+        // Poll chat data every 30 seconds
+        dispatch(fetchUsers())
+        dispatch(fetchChatUnreadCount())
+        
+        // Send heartbeat every 30 seconds
+        sendHeartbeat()
+      }, 30000)
+
+      return () => clearInterval(pollInterval)
+    }
+  }, [dispatch, userProp])
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       const header = document.querySelector('header')
       if (header && !header.contains(event.target)) {
         setShowNotifications(false)
         setShowProfileMenu(false)
+        setShowChatList(false)
       }
     }
 
-    if (showNotifications || showProfileMenu) {
+    if (showNotifications || showProfileMenu || showChatList) {
       const timeoutId = setTimeout(() => {
         document.addEventListener('click', handleClickOutside)
       }, 100)
@@ -128,7 +167,7 @@ function Layout({ children, user: userProp, onLogout }) {
         document.removeEventListener('click', handleClickOutside)
       }
     }
-  }, [showNotifications, showProfileMenu])
+  }, [showNotifications, showProfileMenu, showChatList])
 
   const allNavigationItems = [
     {
@@ -176,7 +215,7 @@ function Layout({ children, user: userProp, onLogout }) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
         </svg>
       ),
-      badge: notifications.filter(n => n.type === 'low_stock' && n.unread).length || null,
+      badge: notifications.filter(n => n.type === 'low_stock' && !n.is_read).length || null,
       badgeColor: 'bg-red-500',
       color: 'green'
     },
@@ -189,7 +228,7 @@ function Layout({ children, user: userProp, onLogout }) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14V5a2 2 0 00-2-2H6a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2z" />
         </svg>
       ),
-      badge: notifications.filter(n => n.type === 'return_request' && n.unread).length || null,
+      badge: notifications.filter(n => n.type === 'return_request' && !n.is_read).length || null,
       badgeColor: 'bg-yellow-500',
       color: 'orange'
     },
@@ -231,17 +270,14 @@ function Layout({ children, user: userProp, onLogout }) {
     }
   ]
 
-  // Filter navigation items based on user permissions
   const getNavigationItems = () => {
     const currentUser = userProp || user
     if (!currentUser) return []
 
-    // Admin can see all modules
     if (currentUser.account_type === 'admin') {
       return allNavigationItems
     }
 
-    // Employee can only see modules they have access to
     const userModules = currentUser.allowed_modules || ['dashboard']
     return allNavigationItems.filter(item => 
       userModules.includes(item.module) && item.module !== 'users'
@@ -315,6 +351,14 @@ function Layout({ children, user: userProp, onLogout }) {
             </svg>
           </div>
         )
+      case 'chat_message':
+        return (
+          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+            <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+          </div>
+        )
       default:
         return (
           <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
@@ -326,11 +370,23 @@ function Layout({ children, user: userProp, onLogout }) {
     }
   }
 
-  const markNotificationAsRead = (notificationId) => {
-    dispatch(markAsRead(notificationId))
+  const handleMarkAsRead = (notificationId) => {
+    dispatch(markNotificationAsRead(notificationId))
   }
 
-  // Display user role properly
+  const handleMarkAllAsRead = () => {
+    dispatch(markAllNotificationsAsRead())
+  }
+
+  const handleDeleteNotification = (notificationId, event) => {
+    event.stopPropagation()
+    dispatch(deleteNotification(notificationId))
+  }
+
+  const handleClearRead = () => {
+    dispatch(clearReadNotifications())
+  }
+
   const getUserRole = () => {
     const currentUser = userProp || user
     if (!currentUser) return 'User'
@@ -339,7 +395,6 @@ function Layout({ children, user: userProp, onLogout }) {
 
   return (
     <div className="h-screen flex bg-gray-50 relative">
-      {/* Floating Open Button - Shows when sidebar is closed on desktop */}
       {!sidebarOpen && (
         <button
           onClick={() => setSidebarOpen(true)}
@@ -352,7 +407,6 @@ function Layout({ children, user: userProp, onLogout }) {
         </button>
       )}
 
-      {/* Sidebar */}
       <div className={`${sidebarOpen ? 'w-64' : 'w-0'} fixed inset-y-0 left-0 z-40 bg-white shadow-xl transform transition-all duration-300 ease-in-out lg:static overflow-hidden`}>
         {sidebarOpen && (
           <button
@@ -371,7 +425,6 @@ function Layout({ children, user: userProp, onLogout }) {
           </button>
         )}
 
-        {/* Logo */}
         <div className={`flex items-center justify-between h-16 px-4 bg-gradient-to-r from-blue-600 to-blue-700 ${sidebarOpen ? '' : 'opacity-0 pointer-events-none'}`}>
           <div className="flex items-center">
             <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center mr-3">
@@ -383,7 +436,7 @@ function Layout({ children, user: userProp, onLogout }) {
               <div className="text-lg font-bold whitespace-nowrap">PG Micro ISOMS</div>
             </div>
           </div>
-          {/* Mobile close button */}
+          
           <button
             onClick={() => setSidebarOpen(false)}
             className="lg:hidden p-2 text-white hover:bg-white/20 rounded-lg transition-colors"
@@ -394,7 +447,6 @@ function Layout({ children, user: userProp, onLogout }) {
           </button>
         </div>
 
-        {/* Navigation */}
         <nav className={`mt-8 px-4 pb-4 ${sidebarOpen ? '' : 'opacity-0 pointer-events-none'}`}>
           <div className="space-y-2">
             {navigationItems.map((item) => (
@@ -426,7 +478,6 @@ function Layout({ children, user: userProp, onLogout }) {
           </div>
         </nav>
 
-        {/* User Info Footer */}
         <div className={`absolute bottom-0 left-0 right-0 p-4 bg-gray-50 border-t border-gray-200 ${sidebarOpen ? '' : 'opacity-0 pointer-events-none'}`}>
           <div className="flex items-center">
             <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
@@ -444,16 +495,13 @@ function Layout({ children, user: userProp, onLogout }) {
         </div>
       </div>
 
-      {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
         </div>
       )}
 
-      {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top header */}
         <header className="bg-white shadow-sm border-b border-gray-200 backdrop-blur-sm bg-white/95 relative z-40">
           <div className="flex items-center justify-between px-4 py-3 sm:px-6">
             <div className="flex items-center">
@@ -468,7 +516,6 @@ function Layout({ children, user: userProp, onLogout }) {
                 </button>
               )}
 
-              {/* Page title */}
               <div>
                 <h1 className="text-2xl font-semibold text-gray-900">{getCurrentPageName()}</h1>
                 <div className="text-sm text-gray-500">
@@ -482,7 +529,6 @@ function Layout({ children, user: userProp, onLogout }) {
               </div>
             </div>
 
-            {/* Right side actions */}
             <div className="flex items-center space-x-4">
               <div className="relative" data-dropdown="notifications">
                 <button
@@ -504,15 +550,50 @@ function Layout({ children, user: userProp, onLogout }) {
                 </button>
 
                 {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-[9999]">
+                  <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-[9999]">
                     <div className="p-4 border-b border-gray-200">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between mb-2">
                         <h3 className="text-lg font-medium text-gray-900">Notifications</h3>
                         <span className="text-sm text-gray-500">{unreadCount} unread</span>
                       </div>
+                      {notifications.length > 0 && (
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleMarkAllAsRead()
+                            }}
+                            className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                          >
+                            Mark all as read
+                          </button>
+                          <span className="text-gray-300">|</span>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleClearRead()
+                            }}
+                            className="text-xs text-gray-600 hover:text-gray-800 font-medium"
+                          >
+                            Clear read
+                          </button>
+                        </div>
+                      )}
                     </div>
-                    <div className="max-h-64 overflow-y-auto">
-                      {notifications.length === 0 ? (
+                    <div className="max-h-96 overflow-y-auto">
+                      {loading && notifications.length === 0 ? (
+                        <div className="p-8 text-center">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                          <p className="text-sm text-gray-500 mt-2">Loading notifications...</p>
+                        </div>
+                      ) : error ? (
+                        <div className="p-8 text-center text-red-500">
+                          <svg className="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <p className="text-sm">{error}</p>
+                        </div>
+                      ) : notifications.length === 0 ? (
                         <div className="p-8 text-center text-gray-500">
                           <div className="w-12 h-12 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
                             <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -525,38 +606,146 @@ function Layout({ children, user: userProp, onLogout }) {
                         notifications.map((notification) => (
                           <div 
                             key={notification.id} 
-                            className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${notification.unread ? 'bg-blue-50' : ''}`}
-                            onClick={() => markNotificationAsRead(notification.id)}
+                            className={`group relative p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${!notification.is_read ? 'bg-blue-50' : ''}`}
+                            onClick={() => handleMarkAsRead(notification.id)}
                           >
                             <div className="flex items-start">
                               {getNotificationIcon(notification.type)}
-                              <div className="ml-3 flex-1">
-                                <p className="text-sm font-medium text-gray-900">{notification.message}</p>
+                              <div className="ml-3 flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900">{notification.title}</p>
+                                <p className="text-sm text-gray-700 mt-1">{notification.message}</p>
                                 {notification.description && (
                                   <p className="text-xs text-gray-600 mt-1">{notification.description}</p>
                                 )}
                                 <p className="text-xs text-gray-500 mt-1">
-                                  {notification.timestamp ? new Date(notification.timestamp).toLocaleString() : notification.time}
+                                  {new Date(notification.created_at).toLocaleString()}
                                 </p>
                               </div>
-                              {notification.unread && (
-                                <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                              )}
+                              <div className="flex items-center gap-2 ml-2">
+                                {!notification.is_read && (
+                                  <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                                )}
+                                <button
+                                  onClick={(e) => handleDeleteNotification(notification.id, e)}
+                                  className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-600 transition-all"
+                                  title="Delete notification"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              </div>
                             </div>
                           </div>
                         ))
                       )}
                     </div>
-                    <div className="p-4 border-t border-gray-200">
-                      <button className="w-full text-sm text-blue-600 hover:text-blue-800 font-medium">
-                        View all notifications
-                      </button>
+                    {notifications.length > 0 && (
+                      <div className="p-4 border-t border-gray-200 bg-gray-50">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setShowNotifications(false)
+                          }}
+                          className="w-full text-sm text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          View all notifications
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Chat Icon */}
+              <div className="relative" data-dropdown="chat">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setShowChatList(!showChatList)
+                    setShowNotifications(false)
+                    setShowProfileMenu(false)
+                  }}
+                  className="p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100 rounded-full transition-all duration-200 relative hover:shadow-md"
+                >
+                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  {chatUnreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {showChatList && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-[9999] max-h-96 overflow-hidden flex flex-col">
+                    <div className="p-4 border-b border-gray-200">
+                      <h3 className="text-lg font-medium text-gray-900">Messages</h3>
+                      {chatUnreadCount > 0 && (
+                        <span className="text-sm text-gray-500">{chatUnreadCount} unread</span>
+                      )}
+                    </div>
+                    
+                    <div className="flex-1 overflow-y-auto">
+                      {chatUsers.length === 0 ? (
+                        <div className="p-8 text-center text-gray-500">
+                          <svg className="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                          <p className="text-sm">No users available</p>
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-gray-100">
+                          {chatUsers.map((chatUser) => {
+                            // Status badge colors
+                            const statusColors = {
+                              online: 'bg-green-400',
+                              idle: 'bg-yellow-400',
+                              dnd: 'bg-red-400',
+                              invisible: 'bg-gray-300',
+                              offline: 'bg-gray-300'
+                            }
+                            const statusColor = statusColors[chatUser.status] || 'bg-gray-300'
+                            
+                            return (
+                            <button
+                              key={chatUser.id}
+                              onClick={async (e) => {
+                                e.stopPropagation()
+                                const result = await dispatch(getOrCreateConversation(chatUser.id))
+                                if (result.payload) {
+                                  dispatch(setActiveConversation({ conversationId: result.payload.id, isActive: true }))
+                                  setShowChatList(false)
+                                }
+                              }}
+                              className="w-full p-3 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                            >
+                              <div className="relative">
+                                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium">
+                                  {chatUser.first_name?.[0]}{chatUser.last_name?.[0]}
+                                </div>
+                                <span className={`absolute bottom-0 right-0 block h-3 w-3 rounded-full ${statusColor} ring-2 ring-white`}></span>
+                              </div>
+                              <div className="flex-1 text-left">
+                                <p className="text-sm font-medium text-gray-900">
+                                  {chatUser.first_name} {chatUser.last_name}
+                                </p>
+                                <p className="text-xs text-gray-500">{chatUser.activeTime || 'Offline'}</p>
+                              </div>
+                              {chatUser.account_type === 'admin' && (
+                                <span className="px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded">Admin</span>
+                              )}
+                            </button>
+                            )
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Profile menu */}
               <div className="relative z-50" data-dropdown="profile">
                 <button
                   onClick={(e) => {
@@ -574,7 +763,6 @@ function Layout({ children, user: userProp, onLogout }) {
                   </div>
                 </button>
 
-                {/* Profile dropdown */}
                 {showProfileMenu && (
                   <div className="fixed top-16 right-4 w-64 bg-white rounded-lg shadow-2xl border border-gray-200 z-[99999]" style={{pointerEvents: 'auto'}}>
                     <div className="p-4 border-b border-gray-200">
@@ -582,6 +770,42 @@ function Layout({ children, user: userProp, onLogout }) {
                         {userProp ? `${userProp.first_name} ${userProp.last_name}` : 'Loading...'}
                       </div>
                       <div className="text-xs text-gray-500">{getUserRole()}</div>
+                      
+                      {/* Status Selector */}
+                      <div className="mt-3 space-y-1">
+                        <div className="text-xs font-medium text-gray-700 mb-2">Status</div>
+                        {[
+                          { value: 'online', label: 'Online', color: 'bg-green-400', icon: '●' },
+                          { value: 'idle', label: 'Idle', color: 'bg-yellow-400', icon: '○' },
+                          { value: 'dnd', label: 'Do Not Disturb', color: 'bg-red-400', icon: '⊖' },
+                          { value: 'invisible', label: 'Invisible', color: 'bg-gray-300', icon: '◯' },
+                          { value: 'offline', label: 'Offline', color: 'bg-gray-400', icon: '○' }
+                        ].map(status => (
+                          <button
+                            key={status.value}
+                            onClick={async () => {
+                              setUserStatus(status.value)
+                              try {
+                                await api.auth.updateStatus(status.value)
+                                dispatch(fetchUsers()) 
+                              } catch (error) {
+                                console.error('Failed to update status:', error)
+                              }
+                            }}
+                            className={`w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded hover:bg-gray-50 transition-colors ${
+                              userStatus === status.value ? 'bg-blue-50 border border-blue-200' : ''
+                            }`}
+                          >
+                            <span className={`w-2 h-2 rounded-full ${status.color}`}></span>
+                            <span className="flex-1 text-left">{status.label}</span>
+                            {userStatus === status.value && (
+                              <svg className="w-3 h-3 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                     <div className="py-2">
                       <button 
@@ -692,11 +916,14 @@ function Layout({ children, user: userProp, onLogout }) {
           {children}
         </main>
       </div>
+
+      <ChatContainer />
     </div>
   )
 }
 
 function Shell() {
+  const dispatch = useDispatch()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState(null)
@@ -714,14 +941,15 @@ function Shell() {
         return
       }
 
-      console.log('Checking auth status with token')
       const data = await authAPI.getCurrentUser()
       console.log('Auth check response:', data)
       console.log('User data from auth check:', data.user)
-      console.log('User modules from auth check:', data.user?.allowed_modules)
       
       setUser(data.user)
       setIsAuthenticated(true)
+      
+      dispatch(setReduxUser(data.user))
+      
     } catch (error) {
       console.error('Auth check failed:', error)
       localStorage.removeItem('authToken')
@@ -734,12 +962,9 @@ function Shell() {
   const handleLogout = async () => {
     try {
       await authAPI.logout()
-      console.log('Logout successful, clearing auth state')
     } catch (error) {
       console.error('Logout API error:', error)
-      // Continue with logout even if API fails
     } finally {
-      // Always clear local state regardless of API response
       localStorage.removeItem('authToken')
       setUser(null)
       setIsAuthenticated(false)

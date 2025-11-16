@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux'
-import { addReorderAlert, removeReorderAlert } from '../../lib/slices/notificationSlice'
+import { createNotification } from '../../lib/slices/notificationSlice'
 
 export default function InventoryPage() {
   const dispatch = useDispatch()
@@ -11,11 +11,10 @@ export default function InventoryPage() {
   const [editingItem, setEditingItem] = useState(null)
   const [viewingItem, setViewingItem] = useState(null)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
-  const [viewMode, setViewMode] = useState('table') // 'table' or 'cards'
+  const [viewMode, setViewMode] = useState('table') 
   const [filters, setFilters] = useState({ search: '', category: '', showDamagedOnly: false })
   const [showWorkflowInfo, setShowWorkflowInfo] = useState(false)
   const [newItem, setNewItem] = useState({
-    // Product fields
     productDescription: '',
     categoryId: '',
     purchasePrice: 0,
@@ -25,26 +24,18 @@ export default function InventoryPage() {
     model: '',
     brand: '',
     damage: false,
-    
-    // Individual Item fields (Serial-based)
     serialNumber: '',
     dateReceived: '',
-    itemStatus: 'available', // available, sold, damaged, returned, reserved
+    itemStatus: 'available',
     location: '',
     expirationDate: '',
-    
-    // Damage tracking
     damageProductId: null,
     dateReported: '',
     damageType: '',
     damageDescription: '',
-    
-    // Warranty tracking
     warrantyStartDate: '',
     warrantyEndDate: '',
     warrantyUse: 0,
-    
-    // Sales tracking
     soldDate: '',
     soldTo: '',
     salePrice: 0
@@ -54,22 +45,9 @@ export default function InventoryPage() {
     fetchInventory()
   }, [])
 
-  // Generate reorder notifications and dispatch to Redux
-  useEffect(() => {
-    // Clear existing reorder alerts for all categories
-    categories.forEach(category => {
-      dispatch(removeReorderAlert(category))
-    })
-    
-    // Add new reorder alerts for low stock categories
-    lowStockCategories.forEach(category => {
-      dispatch(addReorderAlert({
-        category: category.category,
-        available: category.available,
-        reorderPoint: category.reorderPoint
-      }))
-    })
-  }, [items, dispatch]) // Re-run when items change
+  // Note: Reorder alerts are now handled by backend triggers or manual actions
+  // to avoid spamming notifications on every render. Consider implementing
+  // backend logic to create low_stock notifications when items fall below reorder point. 
 
   useEffect(() => {
     if (error) {
@@ -122,8 +100,7 @@ export default function InventoryPage() {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000))
       
-      setNewItem({ 
-        // Product fields
+      setNewItem({
         productDescription: '',
         categoryId: '',
         purchasePrice: 0,
@@ -133,32 +110,24 @@ export default function InventoryPage() {
         model: '',
         brand: '',
         damage: false,
-        
-        // Individual Item fields (Serial-based)
         serialNumber: '',
         dateReceived: '',
         itemStatus: 'available',
         location: '',
         expirationDate: '',
-        
-        // Damage tracking
         damageProductId: null,
         dateReported: '',
         damageType: '',
         damageDescription: '',
-        
-        // Warranty tracking
         warrantyStartDate: '',
         warrantyEndDate: '',
         warrantyUse: 0,
-        
-        // Sales tracking
         soldDate: '',
         soldTo: '',
         salePrice: 0
       })
       setShowAddForm(false)
-      await fetchInventory() // Refresh the list
+      await fetchInventory()
     } catch (error) {
       console.error('Failed to add item:', error)
       setError(error.message)
@@ -181,12 +150,11 @@ export default function InventoryPage() {
       //   body: JSON.stringify(updates)
       // })
       // if (!response.ok) throw new Error('Failed to update item')
-      
-      // Simulate API call
+    
       await new Promise(resolve => setTimeout(resolve, 1000))
       
       setEditingItem(null)
-      await fetchInventory() // Refresh the list
+      await fetchInventory() 
     } catch (error) {
       console.error('Failed to update item:', error)
       setError(error.message)
@@ -209,10 +177,9 @@ export default function InventoryPage() {
         // })
         // if (!response.ok) throw new Error('Failed to delete item')
         
-        // Simulate API call
         await new Promise(resolve => setTimeout(resolve, 1000))
         
-        await fetchInventory() // Refresh the list
+        await fetchInventory()
       } catch (error) {
         console.error('Failed to delete item:', error)
         setError(error.message)
@@ -238,13 +205,8 @@ export default function InventoryPage() {
     
     try {
       setLoading(true)
-      // TODO: Replace with actual API call to process return
       console.log('Processing return for item:', item.id)
-      
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Update item status to indicate return processing
       const updatedItems = items.map(i => 
         i.id === item.id 
           ? { ...i, itemStatus: 'return-processing', location: '📤 Returns Processing Area', returnDate: new Date().toISOString() }
@@ -270,22 +232,15 @@ export default function InventoryPage() {
     setFilters(prev => ({ ...prev, category }))
   }
 
-  // Get unique categories
   const categories = [...new Set(items.map(item => item.category).filter(Boolean))]
-
-  // Get inventory stats (Serial-based)
   const totalItems = items.length
   const availableItems = items.filter(item => item.itemStatus === 'available' || (!item.itemStatus && !item.soldDate))
   const soldItems = items.filter(item => item.itemStatus === 'sold' || item.soldDate)
   const damagedItems = items.filter(item => item.itemStatus === 'damaged' || item.damage)
-  
-  // Calculate total value of available items
   const totalValue = availableItems.reduce((sum, item) => {
     const price = item.sellingPrice || item.price || 0
     return sum + price
   }, 0)
-  
-  // Group by category for stock analysis
   const categoryStats = items.reduce((acc, item) => {
     const category = item.categoryName || item.category || 'Uncategorized'
     const productKey = `${category}-${item.brand}-${item.model}`
@@ -315,12 +270,10 @@ export default function InventoryPage() {
     return acc
   }, {})
   
-  // Find categories needing reorder
   const lowStockCategories = Object.values(categoryStats).filter(cat => 
     cat.available <= cat.reorderPoint
   )
 
-  // Filter items based on current filters
   const filteredItems = items.filter(item => {
     const searchTerm = filters.search.toLowerCase()
     const matchesSearch = !filters.search || 
@@ -433,7 +386,6 @@ export default function InventoryPage() {
           </div>
         )}
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
             <div className="flex items-center">
@@ -496,10 +448,7 @@ export default function InventoryPage() {
           </div>
         </div>
 
-
-        {/* Filters */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6">
-          {/* Filter Tabs */}
           <div className="flex flex-wrap gap-2 border-b border-gray-200 pb-4 mb-4">
             <button
               onClick={() => setFilters(prev => ({ ...prev, showDamagedOnly: false }))}
@@ -572,7 +521,6 @@ export default function InventoryPage() {
           </div>
         </div>
 
-        {/* Damaged Items Workflow Info */}
         {filters.showDamagedOnly && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
             <div className="flex items-start space-x-3">
@@ -624,7 +572,6 @@ export default function InventoryPage() {
           </div>
         )}
 
-        {/* Items Display */}
         {viewMode === 'table' ? (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
@@ -727,7 +674,6 @@ export default function InventoryPage() {
                                     </button>
                                   </div>
                                   
-                                  {/* Primary Action - Process Return */}
                                   <div className="space-y-1">
                                     <button
                                       onClick={() => handleProcessReturn(item)}
@@ -868,7 +814,6 @@ export default function InventoryPage() {
           </div>
         )}
 
-        {/* Add/Edit Item Modal */}
         {(showAddForm || editingItem) && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-full overflow-y-auto">
@@ -877,7 +822,6 @@ export default function InventoryPage() {
                   {editingItem ? 'Edit Item' : 'Add New Item'}
                 </h2>
                 <form onSubmit={handleAddItem} className="space-y-4 max-h-96 overflow-y-auto">
-                  {/* Product Information */}
                   <div className="border-b pb-4">
                     <h3 className="text-lg font-medium text-gray-900 mb-3">Product Information</h3>
                     <div className="space-y-3">
@@ -950,7 +894,6 @@ export default function InventoryPage() {
                     </div>
                   </div>
 
-                  {/* Individual Item Information */}
                   <div className="border-b pb-4">
                     <h3 className="text-lg font-medium text-gray-900 mb-3">Individual Item Information</h3>
                     <div className="space-y-3">
@@ -1012,7 +955,6 @@ export default function InventoryPage() {
                           />
                         </div>
                       </div>
-                      {/* Sales Information (if sold) */}
                       {newItem.itemStatus === 'sold' && (
                         <div className="bg-blue-50 p-3 rounded-lg">
                           <h4 className="text-sm font-medium text-blue-900 mb-2">Sales Information</h4>
@@ -1053,7 +995,6 @@ export default function InventoryPage() {
                     </div>
                   </div>
 
-                  {/* Warranty Information */}
                   <div className="border-b pb-4">
                     <h3 className="text-lg font-medium text-gray-900 mb-3">Warranty Information</h3>
                     <div className="space-y-3">
@@ -1090,7 +1031,6 @@ export default function InventoryPage() {
                     </div>
                   </div>
 
-                  {/* Damage Information */}
                   <div>
                     <h3 className="text-lg font-medium text-gray-900 mb-3">Damage Information</h3>
                     <div className="space-y-3">
@@ -1174,7 +1114,6 @@ export default function InventoryPage() {
                         setShowAddForm(false)
                         setEditingItem(null)
                         setNewItem({
-                          // Product fields
                           productDescription: '',
                           categoryId: '',
                           purchasePrice: 0,
@@ -1184,26 +1123,18 @@ export default function InventoryPage() {
                           model: '',
                           brand: '',
                           damage: false,
-                          
-                          // Individual Item fields (Serial-based)
                           serialNumber: '',
                           dateReceived: '',
                           itemStatus: 'available',
                           location: '',
                           expirationDate: '',
-                          
-                          // Damage tracking
                           damageProductId: null,
                           dateReported: '',
                           damageType: '',
                           damageDescription: '',
-                          
-                          // Warranty tracking
                           warrantyStartDate: '',
                           warrantyEndDate: '',
                           warrantyUse: 0,
-                          
-                          // Sales tracking
                           soldDate: '',
                           soldTo: '',
                           salePrice: 0
@@ -1220,7 +1151,6 @@ export default function InventoryPage() {
           </div>
         )}
 
-        {/* Product Details Modal */}
         {showDetailsModal && viewingItem && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-full overflow-y-auto">
@@ -1241,7 +1171,6 @@ export default function InventoryPage() {
       </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Basic Information */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Basic Information</h3>
                     
@@ -1265,7 +1194,6 @@ export default function InventoryPage() {
                     </div>
                   </div>
 
-                  {/* Pricing & Stock */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Pricing & Stock</h3>
                     
@@ -1314,7 +1242,6 @@ export default function InventoryPage() {
                     </div>
                   </div>
 
-                  {/* Dates & Warranty */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Dates & Warranty</h3>
                     
@@ -1359,12 +1286,10 @@ export default function InventoryPage() {
                     </div>
                   </div>
 
-                  {/* Sales & Damage Information */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Additional Information</h3>
                     
                     <div className="space-y-3">
-                      {/* Sales Information */}
                       {(viewingItem.soldDate || viewingItem.soldTo || viewingItem.salePrice) && (
                         <div className="bg-blue-50 p-4 rounded-lg">
                           <h4 className="text-sm font-medium text-blue-900 mb-2">Sales Information</h4>
@@ -1393,7 +1318,6 @@ export default function InventoryPage() {
                         </div>
                       )}
 
-                      {/* Damage Information */}
                       {(viewingItem.damage || viewingItem.damageDescription || viewingItem.damageType) && (
                         <div className="bg-red-50 p-4 rounded-lg">
                           <h4 className="text-sm font-medium text-red-900 mb-2">Damage Information</h4>
@@ -1422,7 +1346,6 @@ export default function InventoryPage() {
                         </div>
                       )}
 
-                      {/* Other Information */}
                       {viewingItem.notes && (
                         <div>
                           <label className="block text-sm font-medium text-gray-500">Notes</label>
@@ -1433,7 +1356,6 @@ export default function InventoryPage() {
                   </div>
                 </div>
 
-                {/* Modal Footer */}
                 <div className="flex justify-end space-x-3 mt-8 pt-6 border-t">
                   <button
                     onClick={() => {

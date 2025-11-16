@@ -110,6 +110,12 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
+    setUser: (state, action) => {
+      state.user = normalizeUserModules(action.payload);
+      state.isAuthenticated = true;
+      state.error = null;
+    },
+    
     clearError: (state) => {
       state.error = null;
     },
@@ -234,7 +240,7 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearError, resetAuth, updateUserModules, checkModuleAccess } = authSlice.actions;
+export const { setUser, clearError, resetAuth, updateUserModules, checkModuleAccess } = authSlice.actions;
 export const selectAuth = (state) => state.auth;
 export const selectUser = (state) => state.auth.user;
 export const selectIsAuthenticated = (state) => state.auth.isAuthenticated;

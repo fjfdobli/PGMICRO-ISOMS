@@ -1,10 +1,17 @@
 import React, { useState, useEffect } from 'react'
+import { useSelector, useDispatch } from 'react-redux'
 import Card from '../../components/Card'
 import Button from '../../components/Button'
 import Input from '../../components/Input'
+import Toast from '../../components/Toast'
 import { User, Mail, Phone, MapPin, Shield, Save, Edit3, Eye, EyeOff } from 'lucide-react'
+import { authAPI } from '../../lib/api'
+import { getCurrentUser } from '../../lib/slices/authSlice'
 
 export default function ProfileSettingsPage() {
+  const dispatch = useDispatch()
+  const currentUser = useSelector(state => state.auth.user)
+  
   const [user, setUser] = useState({
     first_name: '',
     last_name: '',
@@ -21,12 +28,46 @@ export default function ProfileSettingsPage() {
     newPassword: '',
     confirmPassword: ''
   })
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' })
 
   useEffect(() => {
-    // Load user data from localStorage or API
-    const userData = JSON.parse(localStorage.getItem('userData') || '{}')
-    setUser(userData)
-  }, [])
+    if (currentUser) {
+      setUser({
+        first_name: currentUser.first_name || '',
+        last_name: currentUser.last_name || '',
+        email: currentUser.email || '',
+        phone: currentUser.phone || '',
+        address: currentUser.address || '',
+        account_type: currentUser.account_type || 'employee'
+      })
+    } else {
+      fetchCurrentUser()
+    }
+  }, [currentUser])
+
+  const fetchCurrentUser = async () => {
+    try {
+      const response = await authAPI.getCurrentUser()
+      if (response.user) {
+        setUser({
+          first_name: response.user.first_name || '',
+          last_name: response.user.last_name || '',
+          email: response.user.email || '',
+          phone: response.user.phone || '',
+          address: response.user.address || '',
+          account_type: response.user.account_type || 'employee'
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching user:', error)
+      showToast('Failed to load user data', 'error')
+    }
+  }
+
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type })
+    setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000)
+  }
 
   const handleInputChange = (field, value) => {
     setUser(prev => ({ ...prev, [field]: value }))
@@ -39,33 +80,69 @@ export default function ProfileSettingsPage() {
   const handleSaveProfile = async () => {
     setLoading(true)
     try {
-      // API call to update profile
-      console.log('Updating profile:', user)
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      setIsEditing(false)
+      const profileData = {
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email: user.email,
+        phone: user.phone,
+        address: user.address
+      }
+
+      const response = await authAPI.updateProfile(profileData)
+      
+      if (response.success) {
+        showToast('Profile updated successfully!', 'success')
+        setIsEditing(false)
+        
+        // Update localStorage
+        const userData = JSON.parse(localStorage.getItem('userData') || '{}')
+        localStorage.setItem('userData', JSON.stringify({ ...userData, ...response.user }))
+        
+        // Refresh user data in Redux to get updated info including timestamps
+        dispatch(getCurrentUser())
+      } else {
+        showToast(response.message || 'Failed to update profile', 'error')
+      }
     } catch (error) {
       console.error('Error updating profile:', error)
+      showToast(error.message || 'Failed to update profile', 'error')
     } finally {
       setLoading(false)
     }
   }
 
   const handleChangePassword = async () => {
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      showToast('All password fields are required', 'error')
+      return
+    }
+
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      alert('New passwords do not match')
+      showToast('New passwords do not match', 'error')
+      return
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      showToast('New password must be at least 6 characters', 'error')
       return
     }
     
     setLoading(true)
     try {
-      // API call to change password
-      console.log('Changing password')
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
+      const response = await authAPI.changePassword({
+        current_password: passwordData.currentPassword,
+        new_password: passwordData.newPassword
+      })
+      
+      if (response.success) {
+        showToast('Password changed successfully!', 'success')
+        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
+      } else {
+        showToast(response.message || 'Failed to change password', 'error')
+      }
     } catch (error) {
       console.error('Error changing password:', error)
+      showToast(error.message || 'Failed to change password', 'error')
     } finally {
       setLoading(false)
     }
@@ -73,15 +150,21 @@ export default function ProfileSettingsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
+      {toast.show && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast({ show: false, message: '', type: 'success' })}
+        />
+      )}
+      
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
         <div className="mb-8 fade-in">
           <h1 className="text-3xl font-bold text-gray-900">Profile Settings</h1>
           <p className="mt-2 text-gray-600">Manage your personal information and account preferences</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Profile Information */}
           <div className="lg:col-span-2">
             <Card
               title="Personal Information"
@@ -156,7 +239,6 @@ export default function ProfileSettingsPage() {
             </Card>
           </div>
 
-          {/* Password Change */}
           <div className="lg:col-span-1">
             <Card
               title="Change Password"
@@ -210,7 +292,6 @@ export default function ProfileSettingsPage() {
               </div>
             </Card>
 
-            {/* Account Status */}
             <Card
               title="Account Status"
               className="mt-6"
@@ -218,17 +299,46 @@ export default function ProfileSettingsPage() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Account Status</span>
-                  <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                    Active
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                    currentUser?.status === 'active' 
+                      ? 'bg-green-100 text-green-800'
+                      : currentUser?.status === 'suspended'
+                      ? 'bg-red-100 text-red-800'
+                      : currentUser?.status === 'pending'
+                      ? 'bg-yellow-100 text-yellow-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {currentUser?.status ? currentUser.status.charAt(0).toUpperCase() + currentUser.status.slice(1) : 'Active'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Last Login</span>
-                  <span className="text-sm text-gray-900">Today, 2:30 PM</span>
+                  <span className="text-sm text-gray-900">
+                    {currentUser?.last_login 
+                      ? new Date(currentUser.last_login).toLocaleString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          hour12: true
+                        })
+                      : 'Just now'}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Member Since</span>
-                  <span className="text-sm text-gray-900">Jan 2024</span>
+                  <span className="text-sm text-gray-900">
+                    {currentUser?.created_at 
+                      ? new Date(currentUser.created_at).toLocaleDateString('en-US', {
+                          month: 'short',
+                          year: 'numeric'
+                        })
+                      : new Date().toLocaleDateString('en-US', {
+                          month: 'short',
+                          year: 'numeric'
+                        })}
+                  </span>
                 </div>
               </div>
             </Card>

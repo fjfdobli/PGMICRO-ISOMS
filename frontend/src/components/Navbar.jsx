@@ -76,6 +76,12 @@ export default function Navbar() {
                 >
                   Users
                 </NavLink>
+                <NavLink
+                  to="/api-docs"
+                  className={({ isActive }) => `px-2 py-1 rounded ${isActive ? 'text-[var(--color-brand)] font-semibold' : 'text-gray-600 hover:text-gray-900'}`}
+                >
+                  API Docs
+                </NavLink>
                 <Link to="/users">
                   <Button className="ml-2">Add user</Button>
                 </Link>
