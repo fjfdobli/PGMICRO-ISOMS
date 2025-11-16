@@ -2,11 +2,22 @@ require('dotenv').config({ quiet: true })
 const express = require('express')
 const cors = require('cors')
 const path = require('path')
+const http = require('http')
+const socketIO = require('socket.io')
 const { testConnection } = require('./config/database')
 const { endpoints, stats } = require('./config/apiDocs')
 const ejs = require('ejs')
 
 const app = express()
+const server = http.createServer(app)
+const io = socketIO(server, {
+  cors: {
+    origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176'],
+    credentials: true,
+    methods: ['GET', 'POST']
+  }
+})
+
 const PORT = process.env.PORT || 3002
 app.set('view engine', 'ejs')
 app.set('views', path.join(__dirname, 'views'))
@@ -16,21 +27,22 @@ app.use(cors({
   credentials: true
 }))
 
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
+app.use(express.json({ limit: '60mb' })) 
+app.use(express.urlencoded({ extended: true, limit: '60mb' }))
 app.use(express.static('public'))
-
-// Handle favicon requests to prevent 404 errors
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 app.get('/favicon.ico', (req, res) => res.status(204).end())
 app.use('/.well-known/appspecific', (req, res) => res.status(204).end())
-
+app.set('io', io)
 app.use('/api/auth', require('./routes/auth'))
+app.use('/api/notifications', require('./routes/notifications'))
+app.use('/api/chat', require('./routes/chat'))
+app.use('/api/settings', require('./routes/settings'))
 // app.use('/api/customers', require('./routes/customers'))
 // app.use('/api/inventory', require('./routes/inventory'))
 // app.use('/api/suppliers', require('./routes/suppliers'))
 // app.use('/api/orders', require('./routes/orders'))
 
-// Documentation Routes
 app.get('/', (req, res) => {
   const packageJson = require('./package.json')
   const baseUrl = `http://localhost:${PORT}`
@@ -60,7 +72,6 @@ app.get('/docs/:endpointId', (req, res) => {
     return res.redirect('/')
   }
 
-  // Enrich endpoints with full URLs
   const enrichedEndpoints = endpoints.map(ep => ({
     ...ep,
     fullUrl: baseUrl + ep.path
@@ -121,8 +132,47 @@ const startServer = async () => {
   try {
     await testConnection()
     
-    const server = app.listen(PORT, '0.0.0.0', () => {
+    io.on('connection', (socket) => {
+     // console.log('User connected:', socket.id)
+      
+      socket.on('join', (userId) => {
+        socket.join(`user:${userId}`)
+      //  console.log(`User ${userId} joined their room`)
+      })
+      
+      socket.on('join_conversation', (conversationId) => {
+        socket.join(`conversation:${conversationId}`)
+        // console.log(`Socket joined conversation ${conversationId}`)
+      })
+      
+      socket.on('leave_conversation', (conversationId) => {
+        socket.leave(`conversation:${conversationId}`)
+        // console.log(`Socket left conversation ${conversationId}`)
+      })
+      
+      socket.on('typing', ({ conversationId, userId, userName }) => {
+        socket.to(`conversation:${conversationId}`).emit('user_typing', {
+          conversationId,
+          userId,
+          userName
+        })
+      })
+      
+      socket.on('stop_typing', ({ conversationId, userId }) => {
+        socket.to(`conversation:${conversationId}`).emit('user_stop_typing', {
+          conversationId,
+          userId
+        })
+      })
+      
+      socket.on('disconnect', () => {
+        console.log('User disconnected:', socket.id)
+      })
+    })
+    
+    server.listen(PORT, '0.0.0.0', () => {
       console.log(`Server ready on http://localhost:${PORT}`)
+      console.log(`Socket.IO ready for real-time connections`)
     })
 
     server.on('error', (error) => {

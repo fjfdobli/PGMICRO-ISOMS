@@ -1,47 +1,82 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useSelector } from 'react-redux'
 import Card from '../../components/Card'
 import Button from '../../components/Button'
 import Input from '../../components/Input'
+import Toast from '../../components/Toast'
 import { Settings, Database, Bell, Shield, Palette, Globe, Save, RefreshCw, AlertTriangle } from 'lucide-react'
+import { settingsAPI } from '../../lib/api'
 
 export default function SystemSettingsPage() {
+  const currentUser = useSelector(state => state.auth.user)
+  const isAdmin = currentUser?.account_type === 'admin' || 
+                  currentUser?.allowed_modules?.includes('system-settings')
+
   const [settings, setSettings] = useState({
-    companyName: 'PGMICRO ISOMS',
-    timezone: 'UTC+8',
-    language: 'en',
-    dateFormat: 'MM/DD/YYYY',
-    emailNotifications: true,
-    pushNotifications: true,
-    lowStockAlerts: true,
-    orderAlerts: true,
-    systemAlerts: true,
-    sessionTimeout: 30,
-    passwordExpiry: 90,
-    twoFactorAuth: false,
-    ipWhitelist: '',
-    theme: 'light',
-    primaryColor: '#3B82F6',
-    sidebarCollapsed: false,
-    autoBackup: true,
-    backupFrequency: 'daily',
-    logRetention: 30,
-    maintenanceMode: false
+    general: {},
+    notifications: {},
+    security: {},
+    appearance: {},
+    system: {}
   })
-
   const [loading, setLoading] = useState(false)
+  const [fetching, setFetching] = useState(true)
   const [activeTab, setActiveTab] = useState('general')
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' })
 
-  const handleSettingChange = (key, value) => {
-    setSettings(prev => ({ ...prev, [key]: value }))
+  useEffect(() => {
+    if (!isAdmin) {
+      showToast('You do not have permission to access System Settings', 'error')
+      return
+    }
+    fetchSettings()
+  }, [isAdmin])
+
+  const fetchSettings = async () => {
+    setFetching(true)
+    try {
+      const response = await settingsAPI.getAll()
+      if (response.success) {
+        setSettings(response.data)
+      } else {
+        showToast('Failed to load settings', 'error')
+      }
+    } catch (error) {
+      console.error('Error fetching settings:', error)
+      showToast(error.message || 'Failed to load settings', 'error')
+    } finally {
+      setFetching(false)
+    }
+  }
+
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type })
+    setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000)
+  }
+
+  const handleSettingChange = (category, key, value) => {
+    setSettings(prev => ({
+      ...prev,
+      [category]: {
+        ...prev[category],
+        [key]: value
+      }
+    }))
   }
 
   const handleSaveSettings = async () => {
     setLoading(true)
     try {
-      console.log('Saving settings:', settings)
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      const response = await settingsAPI.updateAll(settings)
+      if (response.success) {
+        showToast('Settings saved successfully!', 'success')
+        setSettings(response.data)
+      } else {
+        showToast(response.message || 'Failed to save settings', 'error')
+      }
     } catch (error) {
       console.error('Error saving settings:', error)
+      showToast(error.message || 'Failed to save settings', 'error')
     } finally {
       setLoading(false)
     }
@@ -55,287 +90,407 @@ export default function SystemSettingsPage() {
     { id: 'system', label: 'System', icon: Database }
   ]
 
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Card>
+            <div className="text-center py-12">
+              <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
+              <p className="text-gray-600">You do not have permission to access System Settings.</p>
+              <p className="text-sm text-gray-500 mt-2">Only administrators can modify system settings.</p>
+            </div>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
+      {toast.show && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast({ show: false, message: '', type: 'success' })}
+        />
+      )}
+
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8 fade-in">
           <h1 className="text-3xl font-bold text-gray-900">System Settings</h1>
           <p className="mt-2 text-gray-600">Configure system preferences and application settings</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          <div className="lg:col-span-1">
-            <Card title="Settings" padding="sm">
-              <nav className="space-y-1">
-                {tabs.map((tab) => {
-                  const Icon = tab.icon
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                        activeTab === tab.id
-                          ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-600'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4 mr-3" />
-                      {tab.label}
-                    </button>
-                  )
-                })}
-              </nav>
-            </Card>
-          </div>
+        {fetching ? (
+          <Card>
+            <div className="text-center py-12">
+              <RefreshCw className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-4" />
+              <p className="text-gray-600">Loading settings...</p>
+            </div>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <div className="lg:col-span-1">
+              <Card title="Settings" padding="sm">
+                <nav className="space-y-1">
+                  {tabs.map((tab) => {
+                    const Icon = tab.icon
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                          activeTab === tab.id
+                            ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-600'
+                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4 mr-3" />
+                        {tab.label}
+                      </button>
+                    )
+                  })}
+                </nav>
+              </Card>
+            </div>
 
-          <div className="lg:col-span-3">
-            <Card
-              title={tabs.find(tab => tab.id === activeTab)?.label}
-              actions={
-                <Button
-                  variant="primary"
-                  size="sm"
-                  leftIcon={<Save className="w-4 h-4" />}
-                  onClick={handleSaveSettings}
-                  loading={loading}
-                >
-                  Save Settings
-                </Button>
-              }
-            >
-              <div className="transition-all duration-200">
-                {activeTab === 'general' && (
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-4">General Settings</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <Input
-                          label="Company Name"
-                          value={settings.companyName}
-                          onChange={(e) => handleSettingChange('companyName', e.target.value)}
-                          placeholder="Enter company name"
-                        />
-                        <Input
-                          label="Timezone"
-                          value={settings.timezone}
-                          onChange={(e) => handleSettingChange('timezone', e.target.value)}
-                          placeholder="Select timezone"
-                        />
-                        <Input
-                          label="Language"
-                          value={settings.language}
-                          onChange={(e) => handleSettingChange('language', e.target.value)}
-                          placeholder="Select language"
-                        />
-                        <Input
-                          label="Date Format"
-                          value={settings.dateFormat}
-                          onChange={(e) => handleSettingChange('dateFormat', e.target.value)}
-                          placeholder="Select date format"
-                        />
+            <div className="lg:col-span-3">
+              <Card
+                title={tabs.find(tab => tab.id === activeTab)?.label}
+                actions={
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    leftIcon={<Save className="w-4 h-4" />}
+                    onClick={handleSaveSettings}
+                    loading={loading}
+                  >
+                    Save Settings
+                  </Button>
+                }
+              >
+                <div className="transition-all duration-200">
+                  {activeTab === 'general' && (
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-4">General Settings</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <Input
+                            label="Company Name"
+                            value={settings.general?.company_name || ''}
+                            onChange={(e) => handleSettingChange('general', 'company_name', e.target.value)}
+                            placeholder="Enter company name"
+                          />
+                          <Input
+                            label="Company Email"
+                            type="email"
+                            value={settings.general?.company_email || ''}
+                            onChange={(e) => handleSettingChange('general', 'company_email', e.target.value)}
+                            placeholder="Enter company email"
+                          />
+                          <Input
+                            label="Company Phone"
+                            value={settings.general?.company_phone || ''}
+                            onChange={(e) => handleSettingChange('general', 'company_phone', e.target.value)}
+                            placeholder="Enter company phone"
+                          />
+                          <Input
+                            label="Company Address"
+                            value={settings.general?.company_address || ''}
+                            onChange={(e) => handleSettingChange('general', 'company_address', e.target.value)}
+                            placeholder="Enter company address"
+                          />
+                          <Input
+                            label="Timezone"
+                            value={settings.general?.timezone || ''}
+                            onChange={(e) => handleSettingChange('general', 'timezone', e.target.value)}
+                            placeholder="e.g., UTC, America/New_York"
+                          />
+                          <Input
+                            label="Date Format"
+                            value={settings.general?.date_format || ''}
+                            onChange={(e) => handleSettingChange('general', 'date_format', e.target.value)}
+                            placeholder="e.g., YYYY-MM-DD"
+                          />
+                          <Input
+                            label="Time Format"
+                            value={settings.general?.time_format || ''}
+                            onChange={(e) => handleSettingChange('general', 'time_format', e.target.value)}
+                            placeholder="12h or 24h"
+                          />
+                          <Input
+                            label="Currency"
+                            value={settings.general?.currency || ''}
+                            onChange={(e) => handleSettingChange('general', 'currency', e.target.value)}
+                            placeholder="e.g., USD, EUR"
+                          />
+                          <Input
+                            label="Language"
+                            value={settings.general?.language || ''}
+                            onChange={(e) => handleSettingChange('general', 'language', e.target.value)}
+                            placeholder="e.g., en, es"
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {activeTab === 'notifications' && (
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-4">Notification Preferences</h3>
-                      <div className="space-y-4">
-                        {[
-                          { key: 'emailNotifications', label: 'Email Notifications', description: 'Receive notifications via email' },
-                          { key: 'pushNotifications', label: 'Push Notifications', description: 'Receive browser push notifications' },
-                          { key: 'lowStockAlerts', label: 'Low Stock Alerts', description: 'Get notified when inventory is low' },
-                          { key: 'orderAlerts', label: 'Order Alerts', description: 'Get notified about new orders' },
-                          { key: 'systemAlerts', label: 'System Alerts', description: 'Get notified about system events' }
-                        ].map((item) => (
-                          <div key={item.key} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  {activeTab === 'notifications' && (
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-4">Notification Preferences</h3>
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                             <div>
-                              <h4 className="text-sm font-medium text-gray-900">{item.label}</h4>
-                              <p className="text-sm text-gray-600">{item.description}</p>
+                              <p className="font-medium text-gray-900">Email Notifications</p>
+                              <p className="text-sm text-gray-500">Receive notifications via email</p>
                             </div>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={settings[item.key]}
-                                onChange={(e) => handleSettingChange(item.key, e.target.checked)}
-                                className="sr-only peer"
-                              />
-                              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {activeTab === 'security' && (
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-4">Security Settings</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <Input
-                          label="Session Timeout (minutes)"
-                          type="number"
-                          value={settings.sessionTimeout}
-                          onChange={(e) => handleSettingChange('sessionTimeout', parseInt(e.target.value))}
-                          placeholder="30"
-                        />
-                        <Input
-                          label="Password Expiry (days)"
-                          type="number"
-                          value={settings.passwordExpiry}
-                          onChange={(e) => handleSettingChange('passwordExpiry', parseInt(e.target.value))}
-                          placeholder="90"
-                        />
-                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                          <div>
-                            <h4 className="text-sm font-medium text-gray-900">Two-Factor Authentication</h4>
-                            <p className="text-sm text-gray-600">Add an extra layer of security</p>
-                          </div>
-                          <label className="relative inline-flex items-center cursor-pointer">
                             <input
                               type="checkbox"
-                              checked={settings.twoFactorAuth}
-                              onChange={(e) => handleSettingChange('twoFactorAuth', e.target.checked)}
-                              className="sr-only peer"
+                              checked={settings.notifications?.email_notifications || false}
+                              onChange={(e) => handleSettingChange('notifications', 'email_notifications', e.target.checked)}
+                              className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                             />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                          </label>
-                        </div>
-                        <Input
-                          label="IP Whitelist"
-                          value={settings.ipWhitelist}
-                          onChange={(e) => handleSettingChange('ipWhitelist', e.target.value)}
-                          placeholder="192.168.1.1, 10.0.0.1"
-                          helperText="Comma-separated list of allowed IP addresses"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {activeTab === 'appearance' && (
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-4">Appearance Settings</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Theme</label>
-                          <select
-                            value={settings.theme}
-                            onChange={(e) => handleSettingChange('theme', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          >
-                            <option value="light">Light</option>
-                            <option value="dark">Dark</option>
-                            <option value="auto">Auto</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Primary Color</label>
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="color"
-                              value={settings.primaryColor}
-                              onChange={(e) => handleSettingChange('primaryColor', e.target.value)}
-                              className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
-                            />
-                            <span className="text-sm text-gray-600">{settings.primaryColor}</span>
                           </div>
-                        </div>
-                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                          <div>
-                            <h4 className="text-sm font-medium text-gray-900">Collapsed Sidebar</h4>
-                            <p className="text-sm text-gray-600">Start with sidebar collapsed</p>
-                          </div>
-                          <label className="relative inline-flex items-center cursor-pointer">
+                          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                            <div>
+                              <p className="font-medium text-gray-900">Push Notifications</p>
+                              <p className="text-sm text-gray-500">Receive browser push notifications</p>
+                            </div>
                             <input
                               type="checkbox"
-                              checked={settings.sidebarCollapsed}
-                              onChange={(e) => handleSettingChange('sidebarCollapsed', e.target.checked)}
-                              className="sr-only peer"
+                              checked={settings.notifications?.push_notifications || false}
+                              onChange={(e) => handleSettingChange('notifications', 'push_notifications', e.target.checked)}
+                              className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                             />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                          </label>
+                          </div>
+                          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                            <div>
+                              <p className="font-medium text-gray-900">Notification Sound</p>
+                              <p className="text-sm text-gray-500">Play sound for notifications</p>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={settings.notifications?.notification_sound || false}
+                              onChange={(e) => handleSettingChange('notifications', 'notification_sound', e.target.checked)}
+                              className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                            <div>
+                              <p className="font-medium text-gray-900">New Order Notifications</p>
+                              <p className="text-sm text-gray-500">Notify admins on new orders</p>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={settings.notifications?.notify_on_new_order || false}
+                              onChange={(e) => handleSettingChange('notifications', 'notify_on_new_order', e.target.checked)}
+                              className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                            <div>
+                              <p className="font-medium text-gray-900">Low Stock Alerts</p>
+                              <p className="text-sm text-gray-500">Notify admins on low stock</p>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={settings.notifications?.notify_on_low_stock || false}
+                              onChange={(e) => handleSettingChange('notifications', 'notify_on_low_stock', e.target.checked)}
+                              className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                            <div>
+                              <p className="font-medium text-gray-900">New User Notifications</p>
+                              <p className="text-sm text-gray-500">Notify admins on new user registration</p>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={settings.notifications?.notify_on_new_user || false}
+                              onChange={(e) => handleSettingChange('notifications', 'notify_on_new_user', e.target.checked)}
+                              className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {activeTab === 'system' && (
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-4">System Configuration</h3>
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                          <div>
-                            <h4 className="text-sm font-medium text-gray-900">Auto Backup</h4>
-                            <p className="text-sm text-gray-600">Automatically backup system data</p>
-                          </div>
-                          <label className="relative inline-flex items-center cursor-pointer">
+                  {activeTab === 'security' && (
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-4">Security Settings</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                          <Input
+                            label="Session Timeout (minutes)"
+                            type="number"
+                            value={settings.security?.session_timeout || 30}
+                            onChange={(e) => handleSettingChange('security', 'session_timeout', parseInt(e.target.value))}
+                            placeholder="30"
+                          />
+                          <Input
+                            label="Password Min Length"
+                            type="number"
+                            value={settings.security?.password_min_length || 6}
+                            onChange={(e) => handleSettingChange('security', 'password_min_length', parseInt(e.target.value))}
+                            placeholder="6"
+                          />
+                          <Input
+                            label="Max Login Attempts"
+                            type="number"
+                            value={settings.security?.max_login_attempts || 5}
+                            onChange={(e) => handleSettingChange('security', 'max_login_attempts', parseInt(e.target.value))}
+                            placeholder="5"
+                          />
+                          <Input
+                            label="Lockout Duration (minutes)"
+                            type="number"
+                            value={settings.security?.lockout_duration || 15}
+                            onChange={(e) => handleSettingChange('security', 'lockout_duration', parseInt(e.target.value))}
+                            placeholder="15"
+                          />
+                        </div>
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                            <div>
+                              <p className="font-medium text-gray-900">Require Special Characters</p>
+                              <p className="text-sm text-gray-500">Require special characters in passwords</p>
+                            </div>
                             <input
                               type="checkbox"
-                              checked={settings.autoBackup}
-                              onChange={(e) => handleSettingChange('autoBackup', e.target.checked)}
-                              className="sr-only peer"
+                              checked={settings.security?.password_require_special || false}
+                              onChange={(e) => handleSettingChange('security', 'password_require_special', e.target.checked)}
+                              className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                             />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                          </label>
+                          </div>
+                          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                            <div>
+                              <p className="font-medium text-gray-900">Two-Factor Authentication</p>
+                              <p className="text-sm text-gray-500">Enable two-factor authentication</p>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={settings.security?.enable_2fa || false}
+                              onChange={(e) => handleSettingChange('security', 'enable_2fa', e.target.checked)}
+                              className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
                         </div>
-                        
+                      </div>
+                    </div>
+                  )}
+
+                  {activeTab === 'appearance' && (
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-4">Appearance Settings</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Backup Frequency</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Theme</label>
                             <select
-                              value={settings.backupFrequency}
-                              onChange={(e) => handleSettingChange('backupFrequency', e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              value={settings.appearance?.theme || 'light'}
+                              onChange={(e) => handleSettingChange('appearance', 'theme', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             >
-                              <option value="hourly">Hourly</option>
-                              <option value="daily">Daily</option>
-                              <option value="weekly">Weekly</option>
-                              <option value="monthly">Monthly</option>
+                              <option value="light">Light</option>
+                              <option value="dark">Dark</option>
+                              <option value="auto">Auto</option>
                             </select>
                           </div>
                           <Input
-                            label="Log Retention (days)"
-                            type="number"
-                            value={settings.logRetention}
-                            onChange={(e) => handleSettingChange('logRetention', parseInt(e.target.value))}
-                            placeholder="30"
+                            label="Primary Color"
+                            type="color"
+                            value={settings.appearance?.primary_color || '#3B82F6'}
+                            onChange={(e) => handleSettingChange('appearance', 'primary_color', e.target.value)}
                           />
-                        </div>
-
-                        <div className="flex items-center justify-between p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                          <div className="flex items-center">
-                            <AlertTriangle className="w-5 h-5 text-yellow-600 mr-3" />
-                            <div>
-                              <h4 className="text-sm font-medium text-yellow-800">Maintenance Mode</h4>
-                              <p className="text-sm text-yellow-700">Temporarily disable system access</p>
-                            </div>
-                          </div>
-                          <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={settings.maintenanceMode}
-                              onChange={(e) => handleSettingChange('maintenanceMode', e.target.checked)}
-                              className="sr-only peer"
-                            />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-600"></div>
-                          </label>
+                          <Input
+                            label="Logo URL"
+                            value={settings.appearance?.logo_url || ''}
+                            onChange={(e) => handleSettingChange('appearance', 'logo_url', e.target.value)}
+                            placeholder="https://example.com/logo.png"
+                          />
                         </div>
                       </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            </Card>
+                  )}
+
+                  {activeTab === 'system' && (
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-4">System Settings</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                          <Input
+                            label="Max File Upload Size (MB)"
+                            type="number"
+                            value={settings.system?.max_file_size || 50}
+                            onChange={(e) => handleSettingChange('system', 'max_file_size', parseInt(e.target.value))}
+                            placeholder="50"
+                          />
+                        </div>
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                            <div>
+                              <p className="font-medium text-gray-900">Enable Chat System</p>
+                              <p className="text-sm text-gray-500">Allow users to use chat feature</p>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={settings.system?.enable_chat || false}
+                              onChange={(e) => handleSettingChange('system', 'enable_chat', e.target.checked)}
+                              className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                            <div>
+                              <p className="font-medium text-gray-900">Enable File Uploads</p>
+                              <p className="text-sm text-gray-500">Allow file uploads in chat</p>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={settings.system?.enable_file_uploads || false}
+                              onChange={(e) => handleSettingChange('system', 'enable_file_uploads', e.target.checked)}
+                              className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                            <div>
+                              <p className="font-medium text-gray-900">Enable Notifications</p>
+                              <p className="text-sm text-gray-500">Enable notification system</p>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={settings.system?.enable_notifications || false}
+                              onChange={(e) => handleSettingChange('system', 'enable_notifications', e.target.checked)}
+                              className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div className="flex items-center justify-between p-4 bg-red-50 rounded-lg border border-red-200">
+                            <div>
+                              <p className="font-medium text-red-900 flex items-center">
+                                <AlertTriangle className="w-4 h-4 mr-2" />
+                                Maintenance Mode
+                              </p>
+                              <p className="text-sm text-red-700">Put the system in maintenance mode</p>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={settings.system?.maintenance_mode || false}
+                              onChange={(e) => handleSettingChange('system', 'maintenance_mode', e.target.checked)}
+                              className="w-4 h-4 text-red-600 rounded focus:ring-2 focus:ring-red-500"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )

@@ -3,16 +3,11 @@ const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const { pool } = require('../config/database')
 const emailService = require('../services/emailService')
+const { authenticateToken } = require('../middleware/auth')
 const router = express.Router()
 const AVAILABLE_MODULES = [
-  'dashboard',
-  'sales',
-  'purchase-orders',
-  'returns',
-  'inventory',
-  'customers',
-  'suppliers'
-]
+'dashboard', 'sales', 'purchase-orders', 'returns',
+  'inventory', 'customers', 'suppliers' ]
 
 router.get('/bootstrap-check', async (req, res) => {
   try {
@@ -307,40 +302,13 @@ router.post('/register', async (req, res) => {
   }
 })
 
-router.get('/me', async (req, res) => {
+router.get('/me', authenticateToken, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1]
-    
-    if (!token) {
-      return res.status(401).json({ 
-        error: 'No token provided' 
-      })
-    }
-
-    let decoded
-    try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET)
-    } catch (err) {
-      if (err.name === 'TokenExpiredError') {
-        return res.status(401).json({ 
-          error: 'Token expired',
-          message: 'Your session has expired. Please log in again.',
-          code: 'TOKEN_EXPIRED'
-        })
-      }
-      if (err.name === 'JsonWebTokenError') {
-        return res.status(401).json({ 
-          error: 'Invalid token',
-          message: 'Your session is invalid. Please log in again.',
-          code: 'TOKEN_INVALID'
-        })
-      }
-      throw err
-    }
+    const userId = req.user.id
     
     const [users] = await pool.execute(
       'SELECT id, email, first_name, last_name, account_type, status, created_at, last_login, phone, address, allowed_modules FROM accounts WHERE id = ? AND status = "active"',
-      [decoded.userId]
+      [userId]
     )
 
     if (users.length === 0) {
@@ -907,6 +875,173 @@ router.post('/logout', (req, res) => {
     success: true,
     message: 'Logged out successfully'
   })
+})
+
+router.put('/profile', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id
+    const { first_name, last_name, email, phone, address } = req.body
+    if (email) {
+      const [existingUser] = await pool.query(
+        'SELECT id FROM accounts WHERE email = ? AND id != ?',
+        [email, userId]
+      )
+      
+      if (existingUser.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email already in use by another account'
+        })
+      }
+    }
+
+    await pool.query(
+      `UPDATE accounts 
+       SET first_name = ?, last_name = ?, email = ?, phone = ?, address = ?, updated_at = NOW()
+       WHERE id = ?`,
+      [first_name, last_name, email, phone || null, address || null, userId]
+    )
+
+    const [updatedUser] = await pool.query(
+      `SELECT id, first_name, last_name, email, phone, address, account_type, status, 
+              created_at, last_login, allowed_modules
+       FROM accounts WHERE id = ?`,
+      [userId]
+    )
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: updatedUser[0]
+    })
+  } catch (error) {
+    console.error('Update profile error:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update profile',
+      error: error.message
+    })
+  }
+})
+
+router.post('/change-password', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id
+    const { current_password, new_password } = req.body
+
+    if (!current_password || !new_password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password and new password are required'
+      })
+    }
+
+    if (new_password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be at least 6 characters long'
+      })
+    }
+
+    const [user] = await pool.query(
+      'SELECT password FROM accounts WHERE id = ?',
+      [userId]
+    )
+
+    if (user.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      })
+    }
+
+    const isValidPassword = await bcrypt.compare(current_password, user[0].password)
+    if (!isValidPassword) {
+      return res.status(401).json({
+        success: false,
+        message: 'Current password is incorrect'
+      })
+    }
+
+    const hashedPassword = await bcrypt.hash(new_password, 10)
+    await pool.query(
+      'UPDATE accounts SET password = ?, updated_at = NOW() WHERE id = ?',
+      [hashedPassword, userId]
+    )
+
+    res.json({
+      success: true,
+      message: 'Password changed successfully'
+    })
+  } catch (error) {
+    console.error('Change password error:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Failed to change password',
+      error: error.message
+    })
+  }
+})
+
+// Update user status (online, idle, dnd, invisible, offline)
+router.put('/status', authenticateToken, async (req, res) => {
+  try {
+    const { status } = req.body
+    const userId = req.user.id
+
+    // Validate status
+    const validStatuses = ['online', 'idle', 'dnd', 'invisible', 'offline']
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`
+      })
+    }
+
+    // Update status AND last_login for real-time activity tracking
+    await pool.query(
+      'UPDATE accounts SET user_status = ?, last_login = NOW() WHERE id = ?',
+      [status, userId]
+    )
+
+    res.json({
+      success: true,
+      message: 'Status updated successfully',
+      status
+    })
+  } catch (error) {
+    console.error('Update status error:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update status',
+      error: error.message
+    })
+  }
+})
+
+// Heartbeat endpoint to keep activity status fresh
+router.post('/heartbeat', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id
+
+    // Update last_login to current time
+    await pool.query(
+      'UPDATE accounts SET last_login = NOW() WHERE id = ?',
+      [userId]
+    )
+
+    res.json({
+      success: true,
+      message: 'Heartbeat received'
+    })
+  } catch (error) {
+    console.error('Heartbeat error:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Failed to process heartbeat',
+      error: error.message
+    })
+  }
 })
 
 module.exports = router
