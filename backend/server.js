@@ -7,7 +7,6 @@ const socketIO = require('socket.io')
 const { testConnection } = require('./config/database')
 const { endpoints, stats } = require('./config/apiDocs')
 const ejs = require('ejs')
-
 const app = express()
 const server = http.createServer(app)
 const io = socketIO(server, {
@@ -128,9 +127,67 @@ app.use((req, res) => {
   })
 })
 
+const initializeSettings = async () => {
+  const { pool } = require('./config/database')
+  
+  try {
+    const [rows] = await pool.query('SELECT COUNT(*) as count FROM system_settings')
+    
+    if (rows[0].count === 0) {
+     // console.log('No settings found, initializing default settings...')
+      
+      const settings = [
+        ['company_name', 'PGMICRO-ISOMS', 'string', 'general', 'Company name'],
+        ['company_email', '', 'string', 'general', 'Company email address'],
+        ['company_phone', '', 'string', 'general', 'Company phone number'],
+        ['company_address', '', 'string', 'general', 'Company address'],
+        ['timezone', 'Asia/Singapore', 'string', 'general', 'System timezone'],
+        ['date_format', 'YYYY-MM-DD', 'string', 'general', 'Date display format'],
+        ['time_format', '12h & 24h', 'string', 'general', 'Time display format'],
+        ['currency', 'PHP', 'string', 'general', 'Default currency'],
+        ['language', 'en', 'string', 'general', 'System language'],
+        ['email_notifications', 'true', 'boolean', 'notifications', 'Enable email notifications'],
+        ['push_notifications', 'true', 'boolean', 'notifications', 'Enable push notifications'],
+        ['notification_sound', 'true', 'boolean', 'notifications', 'Enable notification sounds'],
+        ['notify_on_new_order', 'true', 'boolean', 'notifications', 'Notify on new orders'],
+        ['notify_on_low_stock', 'true', 'boolean', 'notifications', 'Notify on low stock'],
+        ['notify_on_new_user', 'true', 'boolean', 'notifications', 'Notify on new user registration'],
+        ['session_timeout', '30', 'number', 'security', 'Session timeout in minutes'],
+        ['password_min_length', '6', 'number', 'security', 'Minimum password length'],
+        ['max_login_attempts', '5', 'number', 'security', 'Maximum login attempts'],
+        ['lockout_duration', '15', 'number', 'security', 'Account lockout duration in minutes'],
+        ['password_require_special', 'false', 'boolean', 'security', 'Require special characters in passwords'],
+        ['enable_2fa', 'false', 'boolean', 'security', 'Enable two-factor authentication'],
+        ['theme', 'light', 'string', 'appearance', 'UI theme (light, dark, auto)'],
+        ['primary_color', '#3B82F6', 'string', 'appearance', 'Primary color'],
+        ['logo_url', '', 'string', 'appearance', 'Company logo URL'],
+        ['max_file_size', '50', 'number', 'system', 'Maximum file upload size in MB'],
+        ['enable_chat', 'true', 'boolean', 'system', 'Enable chat system'],
+        ['enable_file_uploads', 'true', 'boolean', 'system', 'Enable file uploads'],
+        ['enable_notifications', 'true', 'boolean', 'system', 'Enable notification system'],
+        ['maintenance_mode', 'false', 'boolean', 'system', 'System maintenance mode']
+      ]
+      
+      for (const [key, value, type, category, desc] of settings) {
+        await pool.query(
+          'INSERT INTO system_settings (setting_key, setting_value, setting_type, category, description) VALUES (?, ?, ?, ?, ?)',
+          [key, value, type, category, desc]
+        )
+      }
+      
+      console.log(`Initialized ${settings.length} default settings`)
+    } else {
+      console.log(`System settings loaded (${rows[0].count} settings)`)
+    }
+  } catch (error) {
+    console.error('Failed to initialize settings:', error.message)
+  }
+}
+
 const startServer = async () => {
   try {
     await testConnection()
+    await initializeSettings()
     
     io.on('connection', (socket) => {
      // console.log('User connected:', socket.id)

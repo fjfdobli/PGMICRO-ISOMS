@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { useSelector } from 'react-redux'
 import { authAPI } from '../lib/api'
 import Button from './Button'
 
@@ -19,10 +20,24 @@ export default function Layout({ children }) {
   const [user, setUser] = useState(null)
   // Initialize sidebar as open on desktop, closed on mobile
   const [isSidebarOpen, setIsSidebarOpen] = useState(typeof window !== 'undefined' && window.innerWidth >= 768)
+  
+  // Get current theme from Redux - check multiple possible state structures
+  const settings = useSelector((state) => state.settings || {})
+  const theme = settings.appearance?.theme || settings.theme || 'light'
+  const isDark = theme === 'dark'
+  const [buttonKey, setButtonKey] = useState(0)
+  
+  console.log('🎨 Layout theme:', theme, 'isDark:', isDark)
 
   useEffect(() => {
     loadUserProfile()
   }, [])
+  
+  // Force button re-render when theme changes
+  useEffect(() => {
+    console.log('🔄 Theme changed, forcing button update')
+    setButtonKey(prev => prev + 1)
+  }, [theme, isDark])
 
   const loadUserProfile = async () => {
     try {
@@ -85,12 +100,30 @@ export default function Layout({ children }) {
             <div className="text-xl font-bold text-[var(--color-brand)]">PG Micro ISOMS</div>
             {/* CLOSE BUTTON - Always visible in sidebar */}
             <button 
-              className="p-3 rounded-lg hover:bg-red-100 transition-colors border-2 border-red-500 bg-red-50"
+              key={`close-${buttonKey}`}
+              className="p-3 rounded-lg transition-all border-2"
               onClick={closeSidebar}
               aria-label="Close sidebar"
               title="Close sidebar"
+              style={{
+                backgroundColor: isDark ? '#1a1f2e' : '#fef2f2',
+                borderColor: isDark ? '#2d3748' : '#ef4444'
+              }}
+              onMouseEnter={(e) => {
+                const bg = isDark ? '#252d3d' : '#fee2e2'
+                e.currentTarget.style.backgroundColor = bg
+              }}
+              onMouseLeave={(e) => {
+                const bg = isDark ? '#1a1f2e' : '#fef2f2'
+                e.currentTarget.style.backgroundColor = bg
+              }}
             >
-              <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg 
+                className="w-6 h-6" 
+                fill="none" 
+                stroke={isDark ? '#ffffff' : '#dc2626'}
+                viewBox="0 0 24 24"
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -115,12 +148,30 @@ export default function Layout({ children }) {
               {/* OPEN BUTTON - Visible when sidebar closed */}
               {!isSidebarOpen && (
                 <button 
-                  className="p-3 -ml-2 mr-3 rounded-lg hover:bg-blue-100 transition-colors border-2 border-blue-500 bg-blue-50"
+                  key={`open-${buttonKey}`}
+                  className="p-3 -ml-2 mr-3 rounded-lg transition-all border-2"
                   onClick={toggleSidebar}
                   aria-label="Open sidebar"
                   title="Open sidebar"
+                  style={{
+                    backgroundColor: isDark ? '#1a1f2e' : '#eff6ff',
+                    borderColor: isDark ? '#2d3748' : '#3b82f6'
+                  }}
+                  onMouseEnter={(e) => {
+                    const bg = isDark ? '#252d3d' : '#dbeafe'
+                    e.currentTarget.style.backgroundColor = bg
+                  }}
+                  onMouseLeave={(e) => {
+                    const bg = isDark ? '#1a1f2e' : '#eff6ff'
+                    e.currentTarget.style.backgroundColor = bg
+                  }}
                 >
-                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg 
+                    className="w-6 h-6" 
+                    fill="none" 
+                    stroke={isDark ? '#ffffff' : '#2563eb'}
+                    viewBox="0 0 24 24"
+                  >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 6h16M4 12h16M4 18h16" />
                   </svg>
                 </button>

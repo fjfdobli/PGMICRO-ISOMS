@@ -19,7 +19,7 @@ class SocketService {
     })
 
     this.socket.on('connect', () => {
-      console.log('Socket.IO connected:', this.socket.id)
+   //  console.log('Socket.IO connected:', this.socket.id)
       this.connected = true
       
       if (userId) {
@@ -28,7 +28,7 @@ class SocketService {
     })
 
     this.socket.on('disconnect', () => {
-      console.log('Socket.IO disconnected')
+   //   console.log('Socket.IO disconnected')
       this.connected = false
     })
 

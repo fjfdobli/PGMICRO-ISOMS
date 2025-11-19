@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
 import Card from '../../components/Card'
 import Button from '../../components/Button'
 import Input from '../../components/Input'
 import Toast from '../../components/Toast'
 import { Settings, Database, Bell, Shield, Palette, Globe, Save, RefreshCw, AlertTriangle } from 'lucide-react'
-import { settingsAPI } from '../../lib/api'
+import { fetchSettings, updateSettings, applyTheme, applyPrimaryColor } from '../../lib/slices/settingsSlice'
 
 export default function SystemSettingsPage() {
+  const dispatch = useDispatch()
   const currentUser = useSelector(state => state.auth.user)
+  const globalSettings = useSelector(state => state.settings)
   const isAdmin = currentUser?.account_type === 'admin' || 
                   currentUser?.allowed_modules?.includes('system-settings')
 
@@ -27,27 +29,34 @@ export default function SystemSettingsPage() {
   useEffect(() => {
     if (!isAdmin) {
       showToast('You do not have permission to access System Settings', 'error')
+      setFetching(false)
       return
     }
-    fetchSettings()
-  }, [isAdmin])
-
-  const fetchSettings = async () => {
     setFetching(true)
-    try {
-      const response = await settingsAPI.getAll()
-      if (response.success) {
-        setSettings(response.data)
-      } else {
-        showToast('Failed to load settings', 'error')
-      }
-    } catch (error) {
-      console.error('Error fetching settings:', error)
-      showToast(error.message || 'Failed to load settings', 'error')
-    } finally {
-      setFetching(false)
-    }
-  }
+    console.log('Fetching settings...')
+    dispatch(fetchSettings())
+      .unwrap()
+      .then(data => {
+        console.log('Settings loaded successfully:', data)
+        setFetching(false)
+      })
+      .catch(error => {
+        console.error('Failed to load settings:', error)
+        showToast('Failed to load settings: ' + error, 'error')
+        setFetching(false)
+      })
+  }, [isAdmin, dispatch])
+
+  useEffect(() => {
+    console.log('Global settings updated:', globalSettings)
+    setSettings({
+      general: globalSettings.general || {},
+      notifications: globalSettings.notifications || {},
+      security: globalSettings.security || {},
+      appearance: globalSettings.appearance || {},
+      system: globalSettings.system || {}
+    })
+  }, [globalSettings])
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type })
@@ -66,17 +75,26 @@ export default function SystemSettingsPage() {
 
   const handleSaveSettings = async () => {
     setLoading(true)
+    console.log('Saving settings:', settings)
     try {
-      const response = await settingsAPI.updateAll(settings)
-      if (response.success) {
-        showToast('Settings saved successfully!', 'success')
-        setSettings(response.data)
-      } else {
-        showToast(response.message || 'Failed to save settings', 'error')
-      }
+      const result = await dispatch(updateSettings(settings)).unwrap()
+      console.log('Settings saved successfully:', result)
+      showToast('Settings saved successfully!', 'success')
+      
+      // Apply theme and colors immediately
+      console.log('Applying theme:', settings.appearance?.theme)
+      dispatch(applyTheme())
+      dispatch(applyPrimaryColor())
+      
+      // Force a check of the HTML class
+      setTimeout(() => {
+        const isDark = document.documentElement.classList.contains('dark')
+        console.log('Dark mode active:', isDark)
+        console.log('HTML classes:', document.documentElement.className)
+      }, 100)
     } catch (error) {
       console.error('Error saving settings:', error)
-      showToast(error.message || 'Failed to save settings', 'error')
+      showToast(error?.message || error || 'Failed to save settings', 'error')
     } finally {
       setLoading(false)
     }
@@ -202,35 +220,52 @@ export default function SystemSettingsPage() {
                             onChange={(e) => handleSettingChange('general', 'company_address', e.target.value)}
                             placeholder="Enter company address"
                           />
-                          <Input
-                            label="Timezone"
-                            value={settings.general?.timezone || ''}
-                            onChange={(e) => handleSettingChange('general', 'timezone', e.target.value)}
-                            placeholder="e.g., UTC, America/New_York"
-                          />
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Timezone</label>
+                            <select
+                              value={settings.general?.timezone || 'Asia/Singapore'}
+                              onChange={(e) => handleSettingChange('general', 'timezone', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
+                              <option value="Asia/Singapore">Asia/Singapore (UTC+8)</option>
+                              <option value="Asia/Manila">Asia/Manila (UTC+8)</option>
+                              <option value="Asia/Hong_Kong">Asia/Hong Kong (UTC+8)</option>
+                              <option value="Asia/Shanghai">Asia/Shanghai (UTC+8)</option>
+                              <option value="Asia/Kuala_Lumpur">Asia/Kuala Lumpur (UTC+8)</option>
+                            </select>
+                          </div>
                           <Input
                             label="Date Format"
-                            value={settings.general?.date_format || ''}
+                            value={settings.general?.date_format || 'YYYY-MM-DD'}
                             onChange={(e) => handleSettingChange('general', 'date_format', e.target.value)}
                             placeholder="e.g., YYYY-MM-DD"
+                            disabled
                           />
-                          <Input
-                            label="Time Format"
-                            value={settings.general?.time_format || ''}
-                            onChange={(e) => handleSettingChange('general', 'time_format', e.target.value)}
-                            placeholder="12h or 24h"
-                          />
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Time Format</label>
+                            <select
+                              value={settings.general?.time_format || '12h & 24h'}
+                              onChange={(e) => handleSettingChange('general', 'time_format', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
+                              <option value="12h & 24h">12h & 24h</option>
+                              <option value="12h">12h</option>
+                              <option value="24h">24h</option>
+                            </select>
+                          </div>
                           <Input
                             label="Currency"
-                            value={settings.general?.currency || ''}
+                            value={settings.general?.currency || 'PHP'}
                             onChange={(e) => handleSettingChange('general', 'currency', e.target.value)}
                             placeholder="e.g., USD, EUR"
+                            disabled
                           />
                           <Input
                             label="Language"
-                            value={settings.general?.language || ''}
+                            value={settings.general?.language || 'en'}
                             onChange={(e) => handleSettingChange('general', 'language', e.target.value)}
                             placeholder="e.g., en, es"
+                            disabled
                           />
                         </div>
                       </div>
@@ -397,7 +432,6 @@ export default function SystemSettingsPage() {
                             >
                               <option value="light">Light</option>
                               <option value="dark">Dark</option>
-                              <option value="auto">Auto</option>
                             </select>
                           </div>
                           <Input

@@ -431,7 +431,6 @@ const SupplierDetailModal = ({ supplier, isOpen, onClose, onEdit, onDelete }) =>
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Supplier Details" size="lg">
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex items-start justify-between">
           <div className="flex items-center">
             <div className="w-16 h-16 bg-indigo-100 rounded-xl flex items-center justify-center mr-4">
@@ -463,8 +462,7 @@ const SupplierDetailModal = ({ supplier, isOpen, onClose, onEdit, onDelete }) =>
             </button>
           </div>
         </div>
-
-        {/* Contact Information */}
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <h4 className="font-semibold text-gray-900 flex items-center">
@@ -510,7 +508,7 @@ const SupplierDetailModal = ({ supplier, isOpen, onClose, onEdit, onDelete }) =>
           </div>
         </div>
 
-        {/* Business Information */}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <h4 className="font-semibold text-gray-900 flex items-center">
@@ -565,7 +563,6 @@ const SupplierDetailModal = ({ supplier, isOpen, onClose, onEdit, onDelete }) =>
           </div>
         </div>
 
-        {/* Notes */}
         {supplier.notes && (
           <div className="space-y-4">
             <h4 className="font-semibold text-gray-900">Notes</h4>
@@ -847,10 +844,7 @@ export default function SuppliersPage() {
     }
   }
 
-  // Get unique categories
   const categories = [...new Set(suppliers.map(supplier => supplier.category).filter(Boolean))]
-
-  // Calculate stats
   const totalSuppliers = suppliers.length
   const activeSuppliers = suppliers.filter(s => s.status === 'active').length
   const inactiveSuppliers = suppliers.filter(s => s.status === 'inactive').length
@@ -870,7 +864,6 @@ export default function SuppliersPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -889,7 +882,6 @@ export default function SuppliersPage() {
           </div>
         </div>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
             <div className="flex items-center">
@@ -940,7 +932,6 @@ export default function SuppliersPage() {
           </div>
         </div>
 
-        {/* Search and Filters */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -1013,7 +1004,6 @@ export default function SuppliersPage() {
           </div>
         </div>
 
-        {/* Suppliers Table */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -1064,7 +1054,6 @@ export default function SuppliersPage() {
         </div>
       </div>
 
-      {/* Add Supplier Modal */}
       <Modal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
@@ -1077,7 +1066,6 @@ export default function SuppliersPage() {
         />
       </Modal>
 
-      {/* Edit Supplier Modal */}
       <Modal
         isOpen={!!editingSupplier}
         onClose={() => setEditingSupplier(null)}
@@ -1091,7 +1079,6 @@ export default function SuppliersPage() {
         />
       </Modal>
 
-      {/* Supplier Detail Modal */}
       <SupplierDetailModal
         supplier={viewingSupplier}
         isOpen={!!viewingSupplier}
@@ -1100,7 +1087,6 @@ export default function SuppliersPage() {
         onDelete={(supplier) => setDeleteConfirm(supplier)}
       />
 
-      {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         isOpen={!!deleteConfirm}
         onClose={() => setDeleteConfirm(null)}

@@ -14,14 +14,13 @@ export default function LoginPage({ onSwitchToRegister, onLogin }) {
   const [suspensionInfo, setSuspensionInfo] = useState(null)
   const [showContactModal, setShowContactModal] = useState(false)
 
-  // Debug: Log component render and suspensionInfo state
-  console.log('LoginPage rendered, suspensionInfo:', suspensionInfo)
+ // console.log('LoginPage rendered, suspensionInfo:', suspensionInfo)
 
   const handleLogin = async (e) => {
     e.preventDefault()
     
-    console.log('Login button clicked') // Debug log
-    console.log('onLogin callback exists:', !!onLogin) // Debug log
+  //  console.log('Login button clicked') 
+  // console.log('onLogin callback exists:', !!onLogin) 
     
     setError('')
     setSuspensionInfo(null)
@@ -33,53 +32,45 @@ export default function LoginPage({ onSwitchToRegister, onLogin }) {
 
     setLoading(true)
     try {
-      console.log('Attempting login with:', { email }) // Debug log (don't log password)
+   //   console.log('Attempting login with:', { email }) 
       const data = await authAPI.login(email, password)
-      console.log('Login successful:', data) // Debug log
+    //  console.log('Login successful:', data) 
       
-      // The authAPI.login already stores the token in localStorage
-      // Call the onLogin callback to update parent component state
       if (onLogin) {
-        console.log('Calling onLogin callback') // Debug log
+    //    console.log('Calling onLogin callback') 
         onLogin()
       } else {
-        console.error('onLogin callback not provided') // Debug log
-        // Temporary workaround: reload the page to trigger auth check
+        console.error('onLogin callback not provided')
         console.log('Reloading page as fallback')
         window.location.reload()
       }
     } catch (error) {
       console.error('Login failed:', error)
-      console.log('Error response:', error.response) // Debug log
-      console.log('Error response data:', error.response?.data) // Debug log
+ //     console.log('Error response:', error.response) 
+ //     console.log('Error response data:', error.response?.data) 
       
-      // Check if the error response includes suspension information
       if (error.response?.data?.suspended && error.response?.data?.suspensionDetails) {
-        console.log('Suspension details found:', error.response.data.suspensionDetails) // Debug log
+   //     console.log('Suspension details found:', error.response.data.suspensionDetails)
         setSuspensionInfo(error.response.data.suspensionDetails)
-        setError('') // Clear any error message since we're showing suspension info
-        console.log('Suspension info set successfully') // Debug log
+        setError('')
+  //      console.log('Suspension info set successfully') 
       } else if (error.response?.data?.suspensionDetails) {
-        // Sometimes suspended might not be set but suspensionDetails exists
-        console.log('Suspension details found (without suspended flag):', error.response.data.suspensionDetails) // Debug log
+   //     console.log('Suspension details found (without suspended flag):', error.response.data.suspensionDetails) // Debug log
         setSuspensionInfo(error.response.data.suspensionDetails)
-        setError('') // Clear any error message since we're showing suspension info
+        setError('') 
       } else {
-        // Check if the error message indicates suspension
         if (error.message && error.message.includes('suspended')) {
-          console.log('Suspension detected from error message') // Debug log
-          // Try to extract suspension info from the error response data
+    //      console.log('Suspension detected from error message') 
           const responseData = error.response?.data
           if (responseData) {
-            console.log('Full response data:', responseData) // Debug log
-            // Set a basic suspension info if we have some data
+     //       console.log('Full response data:', responseData) 
             setSuspensionInfo({
               reason: responseData.suspensionReason || responseData.suspension_reason || 'No reason provided',
               admin_email: responseData.admin_email || responseData.suspended_by_email || 'admin@pgmicro.com',
               suspended_at: responseData.suspended_at || new Date().toISOString(),
               suspended_by: responseData.suspended_by || 'System Administrator'
             })
-            setError('') // Clear any error message since we're showing suspension info
+            setError('')
           } else {
             setError(error.message || 'Login failed. Please check your credentials.')
           }
@@ -92,18 +83,15 @@ export default function LoginPage({ onSwitchToRegister, onLogin }) {
     }
   }
 
-  // Debug: Log suspension info changes
   React.useEffect(() => {
-    console.log('Suspension info changed:', suspensionInfo)
+ //   console.log('Suspension info changed:', suspensionInfo)
   }, [suspensionInfo])
 
-  // Debug: Log before render
-  console.log('About to render, suspensionInfo exists:', !!suspensionInfo)
+ // console.log('About to render, suspensionInfo exists:', !!suspensionInfo)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Logo Section */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl mb-4">
             <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -190,7 +178,7 @@ export default function LoginPage({ onSwitchToRegister, onLogin }) {
                   </div>
                   <div className="ml-3 flex-1">
                     <h3 className="text-xl font-bold text-red-800 mb-3">
-                      🚫 ACCOUNT SUSPENDED 🚫
+                      ACCOUNT SUSPENDED
                     </h3>
                     
                     <div className="space-y-3 text-sm text-red-700">
@@ -295,7 +283,6 @@ export default function LoginPage({ onSwitchToRegister, onLogin }) {
         </div>
       </div>
 
-      {/* Contact Admin Modal */}
       <ContactAdminModal
         isOpen={showContactModal}
         onClose={() => setShowContactModal(false)}

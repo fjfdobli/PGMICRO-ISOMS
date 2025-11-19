@@ -3,11 +3,6 @@ const router = express.Router()
 const { pool } = require('../config/database')
 const { authenticateToken, requireAdmin } = require('../middleware/auth')
 
-/**
- * GET /api/settings
- * Get all system settings
- * Requires: Admin authentication
- */
 router.get('/', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const [settings] = await pool.query(
@@ -60,11 +55,7 @@ router.get('/', authenticateToken, requireAdmin, async (req, res) => {
   }
 })
 
-/**
- * GET /api/settings/:category
- * Get settings for a specific category
- * Requires: Admin authentication
- */
+
 router.get('/:category', authenticateToken, requireAdmin, async (req, res) => {
   const { category } = req.params
   
@@ -123,12 +114,7 @@ router.get('/:category', authenticateToken, requireAdmin, async (req, res) => {
   }
 })
 
-/**
- * PUT /api/settings
- * Update system settings
- * Requires: Admin authentication
- * Body: { settings: { category: { setting_key: value } } }
- */
+
 router.put('/', authenticateToken, requireAdmin, async (req, res) => {
   const { settings } = req.body
   const userId = req.user.id
@@ -241,12 +227,7 @@ router.put('/', authenticateToken, requireAdmin, async (req, res) => {
   }
 })
 
-/**
- * PUT /api/settings/:key
- * Update a single setting
- * Requires: Admin authentication
- * Body: { value: any }
- */
+
 router.put('/:key', authenticateToken, requireAdmin, async (req, res) => {
   const { key } = req.params
   const { value } = req.body
@@ -330,11 +311,6 @@ router.put('/:key', authenticateToken, requireAdmin, async (req, res) => {
   }
 })
 
-/**
- * POST /api/settings/reset
- * Reset all settings to defaults
- * Requires: Admin authentication
- */
 router.post('/reset', authenticateToken, requireAdmin, async (req, res) => {
   const userId = req.user.id
   

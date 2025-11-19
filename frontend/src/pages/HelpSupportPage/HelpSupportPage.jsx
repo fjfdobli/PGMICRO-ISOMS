@@ -130,13 +130,11 @@ export default function HelpSupportPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
         <div className="mb-8 fade-in">
           <h1 className="text-3xl font-bold text-gray-900">Help & Support</h1>
           <p className="mt-2 text-gray-600">Find answers, get help, and access resources</p>
         </div>
 
-        {/* Search Bar */}
         <div className="mb-8 fade-in" style={{ animationDelay: '0.1s' }}>
           <div className="relative max-w-2xl">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -149,7 +147,6 @@ export default function HelpSupportPage() {
           </div>
         </div>
 
-        {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 fade-in" style={{ animationDelay: '0.2s' }}>
           <Card hover className="text-center">
             <MessageCircle className="w-12 h-12 text-blue-600 mx-auto mb-4" />
@@ -174,9 +171,7 @@ export default function HelpSupportPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
           <div className="lg:col-span-2">
-            {/* Tabs */}
             <div className="flex space-x-1 mb-6">
               {[
                 { id: 'faq', label: 'FAQ', count: faqData.length },
@@ -197,7 +192,6 @@ export default function HelpSupportPage() {
               ))}
             </div>
 
-            {/* FAQ Tab */}
             {activeTab === 'faq' && (
               <div className="space-y-4 transition-all duration-200">
                 {filteredFaq.length === 0 ? (
@@ -235,7 +229,6 @@ export default function HelpSupportPage() {
               </div>
             )}
 
-            {/* Tickets Tab */}
             {activeTab === 'tickets' && (
               <div className="transition-all duration-200">
                 <Card
@@ -271,7 +264,6 @@ export default function HelpSupportPage() {
               </div>
             )}
 
-            {/* Resources Tab */}
             {activeTab === 'resources' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 transition-all duration-200">
                 {resources.map((resource, index) => {
@@ -298,7 +290,6 @@ export default function HelpSupportPage() {
             )}
           </div>
 
-          {/* Sidebar */}
           <div className="lg:col-span-1">
             <Card title="Contact Information" className="mb-6">
               <div className="space-y-4">

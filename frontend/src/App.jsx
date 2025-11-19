@@ -5,6 +5,7 @@ import api, { authAPI } from './lib/api'
 import { fetchNotifications, fetchUnreadCount, markNotificationAsRead, markAllNotificationsAsRead, deleteNotification, clearReadNotifications } from './lib/slices/notificationSlice'
 import { fetchUsers, fetchUnreadCount as fetchChatUnreadCount, getOrCreateConversation, setActiveConversation } from './lib/slices/chatSlice'
 import { setUser as setReduxUser } from './lib/slices/authSlice'
+import { fetchSettings, applyTheme, applyPrimaryColor } from './lib/slices/settingsSlice'
 import DashboardPage from './pages/DashboardPage/DashboardPage'
 import SalesPage from './pages/SalesPage/SalesPage'
 import PurchaseOrdersPage from './pages/PurchaseOrdersPage/PurchaseOrdersPage'
@@ -98,27 +99,38 @@ function Layout({ children, user: userProp, onLogout }) {
   const dispatch = useDispatch()
   const { notifications = [], unreadCount = 0, loading, error } = useSelector(state => state.notifications || {})
   const { unreadCount: chatUnreadCount = 0, users: chatUsers = [] } = useSelector(state => state.chat || {})
+  const settings = useSelector(state => state.settings || {})
+  const theme = settings.appearance?.theme || settings.theme || 'light'
+  const isDark = theme === 'dark'
   const [sidebarOpen, setSidebarOpen] = useState(true) 
   const [showNotifications, setShowNotifications] = useState(false)
   const [showChatList, setShowChatList] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [user, setUser] = useState(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [userStatus, setUserStatus] = useState('online')
+  const [userStatus, setUserStatus] = useState('offline')
   const location = useLocation()
   const navigate = useNavigate()
 
   useEffect(() => {
+    dispatch(applyTheme())
+    dispatch(applyPrimaryColor())
+  }, [settings.appearance, dispatch])
+
+  useEffect(() => {
+    if (userProp?.user_status) {
+      setUserStatus(userProp.user_status)
+     // console.log('Synced userStatus from userProp:', userProp.user_status)
+    }
+  }, [userProp?.user_status])
+
+  useEffect(() => {
     if (userProp) {
-      // Fetch notifications
       dispatch(fetchNotifications())
       dispatch(fetchUnreadCount())
-      
-      // Fetch chat data
       dispatch(fetchUsers())
       dispatch(fetchChatUnreadCount())
       
-      // Send heartbeat to update last_login for real-time activity
       const sendHeartbeat = async () => {
         try {
           await api.auth.heartbeat?.()
@@ -127,19 +139,13 @@ function Layout({ children, user: userProp, onLogout }) {
         }
       }
       
-      // Initial heartbeat
       sendHeartbeat()
       
       const pollInterval = setInterval(() => {
-        // Poll notifications every 30 seconds
         dispatch(fetchUnreadCount())
         dispatch(fetchNotifications({ limit: 50 }))
-        
-        // Poll chat data every 30 seconds
         dispatch(fetchUsers())
         dispatch(fetchChatUnreadCount())
-        
-        // Send heartbeat every 30 seconds
         sendHeartbeat()
       }, 30000)
 
@@ -398,10 +404,16 @@ function Layout({ children, user: userProp, onLogout }) {
       {!sidebarOpen && (
         <button
           onClick={() => setSidebarOpen(true)}
-          className="hidden lg:flex fixed top-32 left-0 z-[60] items-center justify-center w-10 h-10 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-r-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:w-12 group border border-gray-300"
+          className="hidden lg:flex fixed top-32 left-0 z-[60] items-center justify-center w-10 h-10 rounded-r-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:w-12 group"
+          style={{
+            background: isDark ? '#1a1f2e' : 'linear-gradient(to right, #f3f4f6, #e5e7eb)',
+            borderColor: isDark ? '#2d3748' : '#d1d5db',
+            borderWidth: '1px',
+            borderLeft: 'none'
+          }}
           title="Open sidebar"
         >
-          <svg className="w-5 h-5 text-gray-700 group-hover:text-gray-900 group-hover:scale-110 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 group-hover:scale-110 transition-all" fill="none" stroke={isDark ? '#ffffff' : '#374151'} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
           </svg>
         </button>
@@ -411,13 +423,18 @@ function Layout({ children, user: userProp, onLogout }) {
         {sidebarOpen && (
           <button
             onClick={() => setSidebarOpen(false)}
-            className="hidden lg:flex absolute top-32 right-4 z-50 items-center justify-center w-10 h-10 bg-gradient-to-l from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 group border border-gray-300"
+            className="hidden lg:flex absolute top-32 right-4 z-50 items-center justify-center w-10 h-10 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 group"
+            style={{
+              background: isDark ? '#1a1f2e' : 'linear-gradient(to left, #f3f4f6, #e5e7eb)',
+              borderColor: isDark ? '#2d3748' : '#d1d5db',
+              borderWidth: '1px'
+            }}
             title="Close sidebar"
           >
             <svg 
-              className="w-5 h-5 text-gray-700 group-hover:text-gray-900 group-hover:scale-110 transition-all" 
+              className="w-5 h-5 group-hover:scale-110 transition-all" 
               fill="none" 
-              stroke="currentColor" 
+              stroke={isDark ? '#ffffff' : '#374151'}
               viewBox="0 0 24 24"
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
@@ -657,7 +674,6 @@ function Layout({ children, user: userProp, onLogout }) {
                 )}
               </div>
 
-              {/* Chat Icon */}
               <div className="relative" data-dropdown="chat">
                 <button
                   onClick={(e) => {
@@ -786,10 +802,12 @@ function Layout({ children, user: userProp, onLogout }) {
                             onClick={async () => {
                               setUserStatus(status.value)
                               try {
-                                await api.auth.updateStatus(status.value)
-                                dispatch(fetchUsers()) 
+                                const response = await api.auth.updateStatus(status.value)
+                                console.log('Status updated successfully:', response)
+                                dispatch(fetchUsers())
                               } catch (error) {
                                 console.error('Failed to update status:', error)
+                                setUserStatus(userProp?.user_status || 'offline')
                               }
                             }}
                             className={`w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded hover:bg-gray-50 transition-colors ${
@@ -932,6 +950,15 @@ function Shell() {
     checkAuthStatus()
   }, [])
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      dispatch(fetchSettings()).then(() => {
+        dispatch(applyTheme())
+        dispatch(applyPrimaryColor())
+      })
+    }
+  }, [dispatch, isAuthenticated])
+
   const checkAuthStatus = async () => {
     try {
       const token = localStorage.getItem('authToken')
@@ -942,11 +969,18 @@ function Shell() {
       }
 
       const data = await authAPI.getCurrentUser()
-      console.log('Auth check response:', data)
-      console.log('User data from auth check:', data.user)
+     // console.log('Auth check response:', data)
+     // console.log('User data from auth check:', data.user)
+     // console.log('User status from API response:', data.user?.user_status)
       
       setUser(data.user)
       setIsAuthenticated(true)
+      
+      if (data.user.user_status) {
+       // console.log('User status loaded from database:', data.user.user_status)
+      } else {
+       // console.warn('No user_status in response, will use default:', 'offline')
+      }
       
       dispatch(setReduxUser(data.user))
       

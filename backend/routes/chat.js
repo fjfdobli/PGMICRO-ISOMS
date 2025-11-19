@@ -20,27 +20,10 @@ const storage = multer.diskStorage({
   }
 })
 
-/**
- * File Upload Configuration
- * - Max Size: 50MB (conservative increase from 10MB)
- * - Supported Types: Images, Documents, Videos, Audio, Archives, CAD files, 3D models, Code files, etc.
- * - Storage: Local disk at /uploads/chat/
- * 
- * Security Notes:
- * - Files are stored with unique names (timestamp + random)
- * - Extension validation is enforced
- * - MIME type validation for common categories
- * 
- * Future Improvements:
- * - Add virus scanning
- * - Implement chunked uploads for files >10MB
- * - Add per-user storage quotas
- * - Consider cloud storage (S3/Azure Blob) for scalability
- */
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 50 * 1024 * 1024 // 50MB limit
+    fileSize: 50 * 1024 * 1024
   },
   fileFilter: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase().substring(1)

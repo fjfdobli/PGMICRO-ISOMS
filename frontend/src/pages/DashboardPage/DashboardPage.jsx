@@ -3,9 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { TrendingUp, Package, Users, ShoppingCart, Activity, DollarSign, AlertTriangle, CheckCircle, TrendingDown, ArrowUpRight, ArrowDownRight, Clock, UserPlus, PackagePlus, RefreshCw, BarChart3, Calendar, FileText, Truck, Archive, Zap, Target, Award, Eye, ArrowUp, ArrowDown, ChevronDown, LineChart as LineChartIcon, PieChart as PieChartIcon, BarChart2 } from 'lucide-react'
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart as RePieChart, Pie, Cell, RadialBarChart, RadialBar, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ComposedChart } from 'recharts'
 
-// Data will be fetched from API
-
-// Custom Tooltip Component
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
@@ -22,7 +19,6 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null
 }
 
-// Chart Card Wrapper Component
 const ChartCard = ({ title, subtitle, icon: Icon, children }) => {
   return (
     <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-200">
@@ -64,12 +60,10 @@ const StatCard = ({ title, value, icon: Icon, trend, trendValue, color = "blue",
       className={`bg-white rounded-lg border border-gray-200 hover:shadow-md transition-all ${onClick ? 'cursor-pointer' : ''}`}
     >
       <div className="flex items-center gap-4 p-4">
-        {/* Icon Section */}
         <div className={`p-3 ${colorScheme.icon} rounded-lg flex-shrink-0`}>
           <Icon className="w-6 h-6 text-white" />
         </div>
 
-        {/* Content Section */}
         <div className="flex-1 min-w-0">
           <p className="text-sm text-gray-600 mb-1">{title}</p>
           {loading ? (
@@ -86,7 +80,6 @@ const StatCard = ({ title, value, icon: Icon, trend, trendValue, color = "blue",
           )}
         </div>
 
-        {/* Trend Section */}
         {trend && (
           <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 ${trend === 'up' ? 'bg-green-50' : 'bg-red-50'}`}>
             {trend === 'up' ? <ArrowUp className="w-4 h-4 text-green-600" /> : <ArrowDown className="w-4 h-4 text-red-600" />}
@@ -227,11 +220,9 @@ export default function DashboardPage() {
   const [is24Hour, setIs24Hour] = useState(false)
   const [lastSyncTime, setLastSyncTime] = useState(new Date())
   
-  // Revenue Chart Controls
   const [timePeriod, setTimePeriod] = useState('6-months')
   const [chartType, setChartType] = useState('combined')
 
-  // Replace with your real API data
   const [stats] = useState({ 
     orders: 0, 
     products: 0, 
@@ -274,13 +265,11 @@ export default function DashboardPage() {
     //   setLastSyncTime(new Date())
     // }
     
-    // Simulate immediate API response (remove in production)
     await new Promise(resolve => setTimeout(resolve, 100))
     setRefreshing(false)
     setLastSyncTime(new Date())
   }
 
-  // Clock update - every second
   useEffect(() => {
     const timeInterval = setInterval(() => {
       setCurrentTime(new Date())
@@ -288,34 +277,27 @@ export default function DashboardPage() {
     return () => clearInterval(timeInterval)
   }, [])
 
-  // Real-time auto-sync - every 1 second
   useEffect(() => {
-    // Initial data load
     refreshData()
     
     const autoSyncInterval = setInterval(() => {
       refreshData()
-    }, 1000) // 1000ms = 1 second for real-time updates
+    }, 1000)
     
     return () => clearInterval(autoSyncInterval)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Modern Minimal Header */}
       <div className="sticky top-0 z-30 bg-white border-b border-gray-200">
         <div className="max-w-[1800px] mx-auto px-8 py-5">
           <div className="flex items-center justify-between flex-wrap gap-6">
-            {/* Left: Title Section */}
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
               <p className="text-sm text-gray-500 mt-0.5">Welcome back! Here's your business overview</p>
             </div>
             
-            {/* Right: Date, Time & Actions */}
             <div className="flex items-center gap-3">
-              {/* Date & Time Combined */}
               <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-lg">
                 <Calendar className="w-4 h-4 text-gray-500" />
                 <span className="text-sm font-medium text-gray-700">
@@ -335,7 +317,6 @@ export default function DashboardPage() {
                 </button>
               </div>
               
-              {/* Auto-Sync Indicator - Creative Design */}
               <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
                 <div className="relative">
                   <RefreshCw className={`w-4 h-4 text-blue-600 ${refreshing ? 'animate-spin' : ''}`} />
@@ -346,12 +327,8 @@ export default function DashboardPage() {
                     </span>
                   )}
                 </div>
-                <div className="text-xs font-medium">
-                  {refreshing ? (
-                    <span className="text-blue-700">Live</span>
-                  ) : (
-                    <span className="text-gray-600">Live</span>
-                  )}
+                <div className="text-xs font-medium text-blue-700">
+                  {refreshing ? 'Syncing...' : 'Live'}
                 </div>
               </div>
             </div>
@@ -360,7 +337,6 @@ export default function DashboardPage() {
       </div>
 
       <div className="max-w-[1800px] mx-auto px-8 py-8 space-y-8">
-        {/* KPI Metrics - Cinematic Style */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
             title="Total Revenue"
@@ -397,12 +373,9 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* Main Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Revenue Trend - Large Chart */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-200">
-              {/* Header with Controls */}
               <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -423,7 +396,6 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   
-                  {/* Controls */}
                   <div className="flex items-center gap-3">
                     <div className="relative">
                       <select
@@ -442,7 +414,6 @@ export default function DashboardPage() {
                       <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
                     </div>
 
-                    {/* Chart Type Dropdown */}
                     <div className="relative">
                       <select
                         value={chartType}
@@ -491,15 +462,12 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Secondary Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Inventory Health - Minimal Design */}
           <ChartCard 
             title="Inventory Health Monitor" 
             subtitle="Weekly stock status"
             icon={Package}
           >
-            {/* Inventory Stats Summary - Connect to your API */}
             <div className="grid grid-cols-3 gap-3 mb-6">
               <div className="bg-green-50 rounded-lg p-3 border border-green-200">
                 <p className="text-xs text-green-700 font-medium mb-1">In Stock</p>
@@ -520,13 +488,11 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Chart Placeholder */}
             <div className="flex items-center justify-center h-[280px] text-gray-400">
               <p>No data available</p>
             </div>
           </ChartCard>
 
-          {/* Top Products - Simplified */}
           <ChartCard 
             title="Top Selling Products" 
             subtitle="Best performers this month"
@@ -538,7 +504,6 @@ export default function DashboardPage() {
           </ChartCard>
         </div>
 
-        {/* Performance Metrics - Connect to your API */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {[
             { metric: 'Sales Performance', value: 0, fill: '#10B981' },
@@ -556,7 +521,6 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Progress Bar */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs text-gray-500">
                   <span>Progress</span>
@@ -581,7 +545,6 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Quick Actions - Minimal Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { icon: ShoppingCart, label: 'New Sale', iconBg: 'bg-blue-600', borderColor: 'border-blue-200', onClick: () => navigate('/sales') },

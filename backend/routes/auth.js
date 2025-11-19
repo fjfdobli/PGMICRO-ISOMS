@@ -122,7 +122,7 @@ router.post('/login', async (req, res) => {
     }
 
     await pool.execute(
-      'UPDATE accounts SET last_login = NOW() WHERE id = ?',
+      'UPDATE accounts SET last_login = NOW(), user_status = "online" WHERE id = ?',
       [user.id]
     )
 
@@ -307,7 +307,7 @@ router.get('/me', authenticateToken, async (req, res) => {
     const userId = req.user.id
     
     const [users] = await pool.execute(
-      'SELECT id, email, first_name, last_name, account_type, status, created_at, last_login, phone, address, allowed_modules FROM accounts WHERE id = ? AND status = "active"',
+      'SELECT id, email, first_name, last_name, account_type, status, created_at, last_login, phone, address, allowed_modules, user_status FROM accounts WHERE id = ? AND status = "active"',
       [userId]
     )
 
@@ -318,9 +318,10 @@ router.get('/me', authenticateToken, async (req, res) => {
     }
 
     const user = users[0]
-    console.log('Raw user from /me endpoint:', user)
-    console.log('Raw allowed_modules from /me:', user.allowed_modules)
-    console.log('Type of allowed_modules:', typeof user.allowed_modules)
+ //   console.log('Raw user from /me endpoint:', user)
+ //   console.log('User status from DB:', user.user_status)
+ //   console.log('Raw allowed_modules from /me:', user.allowed_modules)
+ //   console.log('Type of allowed_modules:', typeof user.allowed_modules)
 
     if (user.allowed_modules) {
       try {
@@ -367,7 +368,7 @@ router.get('/me', authenticateToken, async (req, res) => {
 router.get('/users', requireAdmin, async (req, res) => {
   try {
     const [users] = await pool.execute(
-      'SELECT id, email, first_name, last_name, account_type, status, created_at, last_login, phone, address, allowed_modules FROM accounts ORDER BY created_at DESC'
+      'SELECT id, email, first_name, last_name, account_type, status, created_at, last_login, phone, address, allowed_modules, user_status FROM accounts ORDER BY created_at DESC'
     )
 
     const usersWithParsedModules = users.map(user => {
@@ -870,11 +871,25 @@ router.post('/contact', async (req, res) => {
   }
 })
 
-router.post('/logout', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Logged out successfully'
-  })
+router.post('/logout', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id
+    await pool.execute(
+      'UPDATE accounts SET user_status = "offline" WHERE id = ?',
+      [userId]
+    )
+    
+    res.json({
+      success: true,
+      message: 'Logged out successfully'
+    })
+  } catch (error) {
+    console.error('Logout error:', error)
+    res.json({
+      success: true,
+      message: 'Logged out successfully'
+    })
+  }
 })
 
 router.put('/profile', authenticateToken, async (req, res) => {
@@ -983,13 +998,11 @@ router.post('/change-password', authenticateToken, async (req, res) => {
   }
 })
 
-// Update user status (online, idle, dnd, invisible, offline)
 router.put('/status', authenticateToken, async (req, res) => {
   try {
     const { status } = req.body
     const userId = req.user.id
 
-    // Validate status
     const validStatuses = ['online', 'idle', 'dnd', 'invisible', 'offline']
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
@@ -998,11 +1011,18 @@ router.put('/status', authenticateToken, async (req, res) => {
       })
     }
 
-    // Update status AND last_login for real-time activity tracking
-    await pool.query(
+    const [result] = await pool.query(
       'UPDATE accounts SET user_status = ?, last_login = NOW() WHERE id = ?',
       [status, userId]
     )
+
+    console.log(`Status updated for user ${userId}: ${status} (affected rows: ${result.affectedRows})`)
+
+    const [users] = await pool.query(
+      'SELECT user_status FROM accounts WHERE id = ?',
+      [userId]
+    )
+    console.log(`Verified user ${userId} status in DB: ${users[0]?.user_status}`)
 
     res.json({
       success: true,
@@ -1019,12 +1039,9 @@ router.put('/status', authenticateToken, async (req, res) => {
   }
 })
 
-// Heartbeat endpoint to keep activity status fresh
 router.post('/heartbeat', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id
-
-    // Update last_login to current time
     await pool.query(
       'UPDATE accounts SET last_login = NOW() WHERE id = ?',
       [userId]

@@ -7,8 +7,6 @@ import { authAPI } from '../../lib/api'
 export default function RegisterPage({ onSwitchToLogin }) {
   const dispatch = useDispatch()
   const { loading, error } = useSelector(state => state.auth)
-  
-  // Form state
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
@@ -18,8 +16,6 @@ export default function RegisterPage({ onSwitchToLogin }) {
   const [address, setAddress] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  
-  // Component state
   const [localError, setLocalError] = useState('')
   const [success, setSuccess] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
@@ -45,8 +41,6 @@ export default function RegisterPage({ onSwitchToLogin }) {
   const onRegister = async (e) => {
     e.preventDefault()
     setLocalError('')
-
-    // Validation
     if (!firstName.trim() || !lastName.trim() || !email.trim() || !password) {
       setLocalError('Please fill in all required fields')
       return
@@ -63,7 +57,6 @@ export default function RegisterPage({ onSwitchToLogin }) {
     }
 
     try {
-      // Determine account type based on bootstrap mode
       const accountType = isBootstrap ? 'admin' : 'employee'
       
       const userData = {
@@ -78,7 +71,6 @@ export default function RegisterPage({ onSwitchToLogin }) {
 
       await dispatch(registerUser(userData)).unwrap()
       
-      // Set success message based on bootstrap mode
       if (isBootstrap) {
         setSuccessMessage('System has been initialized successfully! You can now sign in as the administrator.')
       } else {
@@ -91,7 +83,6 @@ export default function RegisterPage({ onSwitchToLogin }) {
     }
   }
 
-  // Loading state while checking bootstrap
   if (checkingBootstrap) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -103,7 +94,6 @@ export default function RegisterPage({ onSwitchToLogin }) {
     )
   }
 
-  // Handle successful registration display
   if (success) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -135,7 +125,6 @@ export default function RegisterPage({ onSwitchToLogin }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl">
-        {/* Logo Section */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl mb-4">
             {isBootstrap ? (
@@ -155,7 +144,6 @@ export default function RegisterPage({ onSwitchToLogin }) {
           </p>
         </div>
 
-        {/* Bootstrap Warning */}
         {isBootstrap && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
             <div className="flex items-start">
@@ -171,7 +159,6 @@ export default function RegisterPage({ onSwitchToLogin }) {
           </div>
         )}
 
-        {/* Employee Request Info */}
         {!isBootstrap && (
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
             <div className="flex items-start">
@@ -187,10 +174,8 @@ export default function RegisterPage({ onSwitchToLogin }) {
           </div>
         )}
 
-        {/* Registration Form */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
           <form onSubmit={onRegister} className="space-y-6">
-            {/* Name Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -220,7 +205,6 @@ export default function RegisterPage({ onSwitchToLogin }) {
               </div>
             </div>
             
-            {/* Email */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Email Address <span className="text-red-500">*</span>
@@ -236,7 +220,6 @@ export default function RegisterPage({ onSwitchToLogin }) {
               />
             </div>
 
-            {/* Account Type - Conditional Display */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Account Type
@@ -260,7 +243,6 @@ export default function RegisterPage({ onSwitchToLogin }) {
               </div>
             </div>
             
-            {/* Password Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -311,7 +293,6 @@ export default function RegisterPage({ onSwitchToLogin }) {
               </div>
             </div>
 
-            {/* Optional Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

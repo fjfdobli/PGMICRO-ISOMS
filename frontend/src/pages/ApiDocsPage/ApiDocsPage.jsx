@@ -5,7 +5,6 @@ export default function ApiDocsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
@@ -31,7 +30,6 @@ export default function ApiDocsPage() {
         </div>
       </div>
 
-      {/* Embedded Documentation */}
       <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="bg-white rounded-lg shadow-sm border overflow-hidden" style={{ height: 'calc(100vh - 200px)' }}>
           <iframe
@@ -43,7 +41,6 @@ export default function ApiDocsPage() {
         </div>
       </div>
 
-      {/* Quick Info Cards */}
       <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white p-4 rounded-lg border">

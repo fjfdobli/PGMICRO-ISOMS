@@ -114,8 +114,6 @@ export default function ReturnsPage() {
       setReturnType('return')
       setPriority('normal')
       setSelectedOrder(null)
-      
-      // Reload data
       await loadData()
       
       alert('Return request submitted successfully!')
@@ -243,7 +241,6 @@ export default function ReturnsPage() {
           </div>
         </div>
 
-        {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
             <div className="flex items-center">
@@ -310,7 +307,6 @@ export default function ReturnsPage() {
 
         {viewMode === 'create' ? (
           <div className="grid lg:grid-cols-2 gap-8">
-            {/* Order Selection */}
             <Card title="Select Order">
               <div className="space-y-4">
                 <div>
@@ -385,7 +381,6 @@ export default function ReturnsPage() {
               </div>
             </Card>
 
-            {/* Return Form */}
             <Card title="Return Details">
               <div className="space-y-6">
                 <div>
@@ -498,7 +493,6 @@ export default function ReturnsPage() {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Filters */}
             <Card title="Filter Returns">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
@@ -527,7 +521,6 @@ export default function ReturnsPage() {
               </div>
             </Card>
 
-            {/* Returns List */}
             <Card title="Returns Management">
               <div className="space-y-4">
                 {filteredReturns.length === 0 ? (

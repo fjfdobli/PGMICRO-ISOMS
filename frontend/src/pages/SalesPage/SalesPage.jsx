@@ -40,7 +40,6 @@ export default function SalesPage() {
     notes: ''
   })
   
-  // Recent orders - to be fetched from API
   const [recentOrders, setRecentOrders] = useState([])
 
   useEffect(() => {
@@ -85,23 +84,19 @@ export default function SalesPage() {
     fetchData()
   }, [])
 
-  // Load cart from localStorage on mount
   useEffect(() => {
     const savedCart = localStorage.getItem('cart')
     if (savedCart) setCart(JSON.parse(savedCart))
   }, [])
 
-  // Save cart to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('cart', JSON.stringify(cart))
   }, [cart])
 
-  // Get unique categories from products
   const categories = useMemo(() => {
     const cats = products.map(p => p.description?.split('(')[1]?.split(')')[0] || 'Other')
     return ['All', ...Array.from(new Set(cats))]
   }, [products])
-  // Filter products by selected category
   const filteredProducts = useMemo(() => {
     let filtered = products
     if (selectedCategory !== 'All') {
@@ -250,7 +245,6 @@ export default function SalesPage() {
     setShowProductModal(true)
   }
 
-  // Simple coupon logic: 'DISCOUNT10' gives 10% off
   const applyCoupon = () => {
     if (coupon.trim().toUpperCase() === 'DISCOUNT10') {
       setDiscount(0.1)
@@ -274,7 +268,7 @@ export default function SalesPage() {
     country: 'Philippines',
     notes: ''
   })
-  // When selectedCustomer changes, auto-fill form if found
+  
   useEffect(() => {
     const found = customers.find(c => c.id === selectedCustomer)
     if (found) {
@@ -304,7 +298,6 @@ export default function SalesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
-      {/* Toast Notification */}
       <Toast
         message={toast.message}
         type={toast.type}
@@ -313,7 +306,6 @@ export default function SalesPage() {
         duration={2500}
       />
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Sales Order</h1>
@@ -327,11 +319,8 @@ export default function SalesPage() {
           </Button>
         </div>
 
-        {/* In the main layout, change the grid to two columns: left (customer info + recent orders), right (product catalog) */}
         <div className="grid lg:grid-cols-5 gap-6">
-          {/* Left Sidebar - Customer & Recent Orders */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Customer Selection */}
             <Card title="Customer Information">
               <div className="space-y-4">
                 <div>
@@ -350,7 +339,6 @@ export default function SalesPage() {
                     ))}
                   </select>
                 </div>
-                {/* All customer fields */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <input
                     type="text"
@@ -420,7 +408,7 @@ export default function SalesPage() {
                 </div>
               </div>
             </Card>
-            {/* Recent Orders */}
+            
             <Card title="Recent Orders">
               <div className="space-y-2">
                 {recentOrders.map(order => (
@@ -442,12 +430,10 @@ export default function SalesPage() {
               </div>
             </Card>
           </div>
-          {/* Product Catalog on the right */}
+          
           <div className="lg:col-span-3">
-            {/* Product Catalog */}
             <Card title="Product Catalog">
               <div className="space-y-4">
-                {/* Search */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Search Products
@@ -461,7 +447,7 @@ export default function SalesPage() {
                     disabled={loading}
                   />
                 </div>
-                {/* Category Dropdown above product table */}
+                
                 <div className="flex items-center gap-4 mb-4">
                   <label className="text-sm font-medium text-gray-700">Category:</label>
                   <select
@@ -474,7 +460,6 @@ export default function SalesPage() {
                     ))}
                   </select>
                     </div>
-                {/* Product Table */}
                 <div className="overflow-x-auto border border-gray-200 rounded-lg max-h-[520px] overflow-y-auto">
                   <table className="w-full">
                     <thead className="bg-gray-50 sticky top-0 z-10">
@@ -525,7 +510,7 @@ export default function SalesPage() {
           </div>
         </div>
                   </div>
-      {/* Product Details Modal */}
+                  
       <Modal
         isOpen={showProductModal}
         onClose={() => setShowProductModal(false)}
@@ -553,7 +538,7 @@ export default function SalesPage() {
           </div>
         )}
       </Modal>
-      {/* Cart Modal: add order status dropdown above Save Order */}
+      
       <Modal
         isOpen={showCartModal}
         onClose={() => setShowCartModal(false)}
@@ -561,7 +546,6 @@ export default function SalesPage() {
         size="lg"
       >
         <div className="space-y-6">
-          {/* Cart Items Table (reuse previous order summary table) */}
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
                   {cart.length === 0 ? (
                     <div className="p-12 text-center">
@@ -626,7 +610,7 @@ export default function SalesPage() {
                     </div>
                   )}
                 </div>
-          {/* Order Summary and Coupon */}
+                
                 {cart.length > 0 && (
                   <div className="border-t border-gray-200 pt-6">
                     <div className="flex justify-between items-center mb-6">
@@ -676,7 +660,7 @@ export default function SalesPage() {
                 )}
               </div>
       </Modal>
-      {/* Step-by-step Checkout Modal */}
+      
       <Modal
         isOpen={showCheckoutModal}
         onClose={() => setShowCheckoutModal(false)}
@@ -688,7 +672,6 @@ export default function SalesPage() {
         }
         size="md"
       >
-        {/* Step 1: Customer Selection/Creation */}
         {checkoutStep === 1 && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Select Customer <span className="text-red-500">*</span></label>
@@ -717,7 +700,7 @@ export default function SalesPage() {
             </Button>
           </div>
         )}
-        {/* Step 2: Billing Information */}
+        
         {checkoutStep === 2 && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Billing Address</label>
@@ -760,10 +743,9 @@ export default function SalesPage() {
             </Button>
           </div>
         )}
-        {/* Step 3: Payment (simulate) */}
+        
         {checkoutStep === 3 && (
           <div className="text-center">
-            {/* Order items summary */}
             <div className="text-left mb-4 border border-gray-200 rounded-lg overflow-hidden">
               {cart.length === 0 ? (
                 <div className="p-4 text-gray-600 text-sm">No items in cart.</div>
@@ -820,7 +802,7 @@ export default function SalesPage() {
             </Button>
           </div>
         )}
-        {/* Step 4: Confirmation */}
+        
         {checkoutStep === 4 && orderConfirmation && (
           <div className="text-center">
             <h3 className="text-2xl font-bold text-green-600 mb-2">Order Placed!</h3>
@@ -854,7 +836,7 @@ export default function SalesPage() {
         )}
         </Modal>
         
-        {/* Add Customer Modal */}
+        
         <Modal
           isOpen={showAddCustomerModal}
           onClose={() => setShowAddCustomerModal(false)}

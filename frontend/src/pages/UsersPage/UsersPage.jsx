@@ -133,16 +133,13 @@ export default function UsersPage() {
     try {
       const data = await usersAPI.getAll()
       console.log('Raw users data from API:', data.data)
-      
-      // Process each user's allowed_modules field
       const processedUsers = (data.data || []).map(user => {
         const processedUser = { ...user }
         
-        console.log(`Processing user ${user.id}:`, user)
-        console.log(`Raw allowed_modules for user ${user.id}:`, user.allowed_modules)
-        console.log(`Type of allowed_modules for user ${user.id}:`, typeof user.allowed_modules)
+       // console.log(`Processing user ${user.id}:`, user)
+    //  console.log(`Raw allowed_modules for user ${user.id}:`, user.allowed_modules)
+      //  console.log(`Type of allowed_modules for user ${user.id}:`, typeof user.allowed_modules)
         
-        // Process allowed_modules to ensure it's an array
         if (processedUser.allowed_modules) {
           if (typeof processedUser.allowed_modules === 'string') {
             try {
@@ -213,14 +210,12 @@ export default function UsersPage() {
       console.log('User creation result:', result)
       
       if (result.success && result.user) {
-        // Process the returned user's allowed_modules the same way as edit
         const newUser = { ...result.user }
         
-        console.log('Raw returned new user:', newUser)
-        console.log('Raw returned allowed_modules:', newUser.allowed_modules)
-        console.log('Type of returned allowed_modules:', typeof newUser.allowed_modules)
+       // console.log('Raw returned new user:', newUser)
+       // console.log('Raw returned allowed_modules:', newUser.allowed_modules)
+       // console.log('Type of returned allowed_modules:', typeof newUser.allowed_modules)
         
-        // Process allowed_modules to ensure it's an array
         if (newUser.allowed_modules) {
           if (typeof newUser.allowed_modules === 'string') {
             try {
@@ -239,10 +234,9 @@ export default function UsersPage() {
           newUser.allowed_modules = ['dashboard']
         }
         
-        console.log('Final processed new user:', newUser)
-        console.log('Final processed allowed_modules:', newUser.allowed_modules)
+       // console.log('Final processed new user:', newUser)
+       // console.log('Final processed allowed_modules:', newUser.allowed_modules)
         
-        // Add the new user to the users array
         setUsers(prevUsers => {
           console.log('Adding new user to users array')
           const newUsers = [...prevUsers, newUser]
@@ -259,7 +253,6 @@ export default function UsersPage() {
     }
   }
 
-  // Helper functions to ensure fresh user data
   const handleEditUser = (userId) => {
     console.log('=== handleEditUser called ===')
     console.log('Looking for userId:', userId)
@@ -298,14 +291,12 @@ export default function UsersPage() {
       console.log('User update result:', result)
       
       if (result.success && result.user) {
-        // Process the returned user's allowed_modules the same way backend does
         const updatedUser = { ...result.user }
         
-        console.log('Raw returned user:', updatedUser)
-        console.log('Raw returned allowed_modules:', updatedUser.allowed_modules)
-        console.log('Type of returned allowed_modules:', typeof updatedUser.allowed_modules)
+       // console.log('Raw returned user:', updatedUser)
+      // console.log('Raw returned allowed_modules:', updatedUser.allowed_modules)
+      //  console.log('Type of returned allowed_modules:', typeof updatedUser.allowed_modules)
         
-        // Process allowed_modules to ensure it's an array
         if (updatedUser.allowed_modules) {
           if (typeof updatedUser.allowed_modules === 'string') {
             try {
@@ -324,10 +315,9 @@ export default function UsersPage() {
           updatedUser.allowed_modules = ['dashboard']
         }
         
-        console.log('Final processed user for state update:', updatedUser)
-        console.log('Final processed allowed_modules:', updatedUser.allowed_modules)
+      //  console.log('Final processed user for state update:', updatedUser)
+      //  console.log('Final processed allowed_modules:', updatedUser.allowed_modules)
         
-        // Update the users array immediately with the processed user data
         setUsers(prevUsers => {
           console.log('Before update - prevUsers:', prevUsers)
           const newUsers = prevUsers.map(user => 
@@ -339,13 +329,11 @@ export default function UsersPage() {
         });
       }
       
-      // Clear editing state first
       setEditingUser(null)
       setShowEditModal(false)
-      setViewingUser(null) // Also clear viewing state in case it's showing the same user
+      setViewingUser(null) 
       setShowViewModal(false)
       
-      // Don't reload users since we already updated the state with processed data
       console.log('User update completed, state should be updated')
     } catch (error) {
       console.error('Error updating user:', error)
@@ -386,7 +374,6 @@ export default function UsersPage() {
     }
   }
 
-  // Confirmation handlers
   const confirmApproval = async () => {
     console.log('confirmApproval called, pendingActionUser:', pendingActionUser)
     if (!pendingActionUser) return
@@ -397,7 +384,7 @@ export default function UsersPage() {
       console.log('Approval successful')
       setShowApprovalModal(false)
       setPendingActionUser(null)
-      await loadUsers() // Refresh the users list
+      await loadUsers() 
     } catch (error) {
       console.error('Failed to approve user:', error)
       alert('Error approving user: ' + error.message)
@@ -414,7 +401,7 @@ export default function UsersPage() {
       console.log('Rejection successful')
       setShowRejectionModal(false)
       setPendingActionUser(null)
-      await loadUsers() // Refresh the users list
+      await loadUsers() 
     } catch (error) {
       console.error('Failed to reject user:', error)
       alert('Error rejecting user: ' + error.message)
@@ -429,7 +416,7 @@ export default function UsersPage() {
       setShowSuspensionModal(false)
       setPendingActionUser(null)
       setSuspensionReason('')
-      await loadUsers() // Refresh the users list
+      await loadUsers() 
     } catch (error) {
       console.error('Failed to suspend user:', error)
       alert('Error suspending user: ' + error.message)
@@ -443,17 +430,14 @@ export default function UsersPage() {
       await usersAPI.unsuspend(pendingActionUser.id)
       setShowUnsuspensionModal(false)
       setPendingActionUser(null)
-      await loadUsers() // Refresh the users list
+      await loadUsers() 
     } catch (error) {
       console.error('Failed to unsuspend user:', error)
       alert('Error unsuspending user: ' + error.message)
     }
   }
 
-  // Check if current user is admin
   const canManageUsers = currentUser?.account_type === 'admin'
-
-  // Calculate stats
   const totalUsers = users.length
   const adminUsers = users.filter(u => u.account_type === 'admin').length
   const employeeUsers = users.filter(u => u.account_type === 'employee').length
@@ -489,7 +473,6 @@ export default function UsersPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -508,7 +491,6 @@ export default function UsersPage() {
           </div>
         </div>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
             <div className="flex items-center">
@@ -571,7 +553,6 @@ export default function UsersPage() {
           </div>
         </div>
 
-        {/* Quick Actions for Pending Requests */}
         {pendingUsers > 0 && canManageUsers && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
             <div className="flex items-center justify-between">
@@ -597,7 +578,6 @@ export default function UsersPage() {
           </div>
         )}
 
-        {/* Search and Filters */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -671,7 +651,6 @@ export default function UsersPage() {
           </div>
         </div>
 
-        {/* Users Table */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -727,7 +706,6 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* View User Modal */}
       {showViewModal && viewingUser && (
         <UserViewModal
           user={viewingUser}
@@ -740,7 +718,6 @@ export default function UsersPage() {
         />
       )}
 
-      {/* Add User Modal */}
       <Modal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
@@ -753,7 +730,6 @@ export default function UsersPage() {
         />
       </Modal>
 
-      {/* Edit User Modal */}
       <Modal
         isOpen={showEditModal && !!editingUser}
         onClose={() => {
@@ -773,7 +749,6 @@ export default function UsersPage() {
         />
       </Modal>
 
-      {/* Approval Modal */}
       {showApprovalModal && (
         <Modal isOpen={showApprovalModal} onClose={() => setShowApprovalModal(false)} title="Approve User">
           <div className="p-6">
@@ -811,7 +786,6 @@ export default function UsersPage() {
         </Modal>
       )}
 
-      {/* Rejection Modal */}
       {showRejectionModal && (
         <Modal isOpen={showRejectionModal} onClose={() => setShowRejectionModal(false)} title="Reject User">
           <div className="p-6">
@@ -849,7 +823,6 @@ export default function UsersPage() {
         </Modal>
       )}
 
-      {/* Suspension Modal */}
       {showSuspensionModal && (
         <Modal isOpen={showSuspensionModal} onClose={() => setShowSuspensionModal(false)} title="Suspend User">
           <div className="p-6">
@@ -904,7 +877,6 @@ export default function UsersPage() {
         </Modal>
       )}
 
-      {/* Unsuspension Modal */}
       {showUnsuspensionModal && (
         <Modal isOpen={showUnsuspensionModal} onClose={() => setShowUnsuspensionModal(false)} title="Unsuspend User">
           <div className="p-6">
@@ -958,7 +930,6 @@ const getStatusColor = (status) => {
 const getModuleNames = (modules) => {
   if (!modules || modules.length === 0) return ['Dashboard']
   
-  // Handle if modules is a string (JSON)
   let moduleArray = modules
   if (typeof modules === 'string') {
     try {
@@ -1018,7 +989,6 @@ const UserViewModal = ({ user, onClose, onEdit, currentUserEmail }) => {
           </div>
         </div>
 
-        {/* User Information */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <h4 className="text-sm font-medium text-gray-900 mb-3">Personal Information</h4>
@@ -1075,7 +1045,6 @@ const UserViewModal = ({ user, onClose, onEdit, currentUserEmail }) => {
           </div>
         </div>
 
-        {/* Module Permissions */}
         <div>
           <h4 className="text-sm font-medium text-gray-900 mb-3">Module Permissions</h4>
           {user.account_type === 'admin' ? (
@@ -1113,7 +1082,6 @@ const UserViewModal = ({ user, onClose, onEdit, currentUserEmail }) => {
           )}
         </div>
 
-        {/* Action Buttons */}
         <div className="flex justify-between pt-6 border-t border-gray-200">
           <button
             onClick={onClose}
@@ -1141,7 +1109,6 @@ const UserViewModal = ({ user, onClose, onEdit, currentUserEmail }) => {
 }
 
 const ModuleSelector = ({ selectedModules = [], onChange, accountType, disabled = false }) => {
-  // Ensure selectedModules is always an array
   const safeSelectedModules = Array.isArray(selectedModules) ? selectedModules : ['dashboard']
   
   console.log('ModuleSelector props:', { selectedModules, safeSelectedModules, accountType })
@@ -1152,7 +1119,6 @@ const ModuleSelector = ({ selectedModules = [], onChange, accountType, disabled 
     isSelected: safeSelectedModules.includes(m.id) 
   })))
   
-  // Admin gets all modules automatically
   if (accountType === 'admin') {
     return (
       <div className="space-y-3">
@@ -1194,21 +1160,17 @@ const ModuleSelector = ({ selectedModules = [], onChange, accountType, disabled 
                   let newModules = [...safeSelectedModules]
                   
                   if (e.target.checked) {
-                    // Add module if not already present
                     if (!newModules.includes(module.id)) {
                       newModules.push(module.id)
                     }
                   } else {
-                    // Remove module
                     newModules = newModules.filter(id => id !== module.id)
                   }
                   
-                  // Ensure dashboard is always included
                   if (!newModules.includes('dashboard')) {
                     newModules.unshift('dashboard')
                   }
                   
-                  // Remove duplicates
                   newModules = [...new Set(newModules)]
                   
                   console.log('Module selection changed:', { module: module.id, checked: e.target.checked, newModules })
@@ -1260,11 +1222,9 @@ const UserForm = ({ user, onSubmit, onCancel }) => {
       console.log('User allowed_modules raw:', user.allowed_modules)
       console.log('Type of allowed_modules:', typeof user.allowed_modules)
       
-      // Ensure allowed_modules is properly handled
-      let userModules = ['dashboard'] // Always include dashboard as default
+      let userModules = ['dashboard'] 
       
       if (user.account_type === 'admin') {
-        // Admin gets all modules
         userModules = AVAILABLE_MODULES.map(m => m.id)
         console.log('Admin user - setting all modules:', userModules)
       } else if (user.allowed_modules) {
@@ -1287,19 +1247,17 @@ const UserForm = ({ user, onSubmit, onCancel }) => {
         console.log('No allowed_modules found, using default')
       }
       
-      // Ensure dashboard is always included for employees
       if (!userModules.includes('dashboard')) {
         userModules.unshift('dashboard')
       }
       
-      // Remove duplicates
       userModules = [...new Set(userModules)]
       
       console.log('Final processed user modules for form:', userModules)
       
       setForm({
         email: user.email || '',
-        password: '', // Always empty for editing
+        password: '', 
         firstName: user.first_name || '',
         lastName: user.last_name || '',
         accountType: user.account_type || 'employee',
@@ -1312,7 +1270,6 @@ const UserForm = ({ user, onSubmit, onCancel }) => {
       console.log('Form state set with modules:', userModules)
       console.log('=== End UserForm useEffect ===')
     } else {
-      // Reset form for new user
       console.log('Resetting form for new user')
       setForm({
         email: '',
@@ -1346,18 +1303,14 @@ const UserForm = ({ user, onSubmit, onCancel }) => {
     if (validateForm()) {
       setLoading(true)
       try {
-        // Always include dashboard in allowed_modules for employees
         let modules = Array.isArray(form.allowedModules) ? [...form.allowedModules] : ['dashboard']
         
         if (form.accountType === 'admin') {
-          // Admin gets all modules
           modules = AVAILABLE_MODULES.map(m => m.id)
         } else {
-          // For employees, ensure dashboard is included
           if (!modules.includes('dashboard')) {
             modules.unshift('dashboard')
           }
-          // Remove duplicates
           modules = [...new Set(modules)]
         }
         
@@ -1374,7 +1327,6 @@ const UserForm = ({ user, onSubmit, onCancel }) => {
           allowed_modules: modules
         }
         
-        // Only include password for new users
         if (!user && form.password) {
           submitData.password = form.password
         }
@@ -1481,12 +1433,10 @@ const UserForm = ({ user, onSubmit, onCancel }) => {
               if (newAccountType === 'admin') {
                 newModules = AVAILABLE_MODULES.map(m => m.id)
               } else {
-                // For employee, preserve current modules but ensure dashboard is included
                 newModules = Array.isArray(form.allowedModules) ? [...form.allowedModules] : ['dashboard']
                 if (!newModules.includes('dashboard')) {
                   newModules.unshift('dashboard')
                 }
-                // Remove duplicates
                 newModules = [...new Set(newModules)]
               }
               
@@ -1521,7 +1471,6 @@ const UserForm = ({ user, onSubmit, onCancel }) => {
         </div>
       </div>
 
-      {/* Module Permissions */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-3">
           Module Permissions
@@ -1632,7 +1581,6 @@ const UserRow = ({ user, onEdit, onView, onApprove, onReject, onSuspend, onUnsus
   }
 
   const handleClick = (e) => {
-    // Don't trigger view if clicking on action buttons
     if (e.target.closest('button')) {
       return
     }
@@ -1717,7 +1665,6 @@ const UserRow = ({ user, onEdit, onView, onApprove, onReject, onSuspend, onUnsus
       </td>
       <td className="py-4 px-4">
         <div className="flex items-center space-x-2">
-          {/* Pending Status Actions */}
           {user.status === 'pending' && canManageUsers && (
             <>
               <button
@@ -1743,7 +1690,6 @@ const UserRow = ({ user, onEdit, onView, onApprove, onReject, onSuspend, onUnsus
             </>
           )}
 
-          {/* Active/Inactive Status Actions */}
           {(user.status === 'active' || user.status === 'inactive') && canManageUsers && !isCurrentUser && (
             <>
               <button
@@ -1779,7 +1725,6 @@ const UserRow = ({ user, onEdit, onView, onApprove, onReject, onSuspend, onUnsus
             </>
           )}
 
-          {/* Suspended Status Actions */}
           {user.status === 'suspended' && canManageUsers && (
             <>
               <button
@@ -1805,7 +1750,6 @@ const UserRow = ({ user, onEdit, onView, onApprove, onReject, onSuspend, onUnsus
             </>
           )}
 
-          {/* Current User - Limited Actions */}
           {isCurrentUser && (
             <>
               <button

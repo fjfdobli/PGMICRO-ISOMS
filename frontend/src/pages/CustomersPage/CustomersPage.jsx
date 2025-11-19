@@ -21,7 +21,7 @@ export default function CustomersPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
   const [showAddForm, setShowAddForm] = useState(false)
-  const [viewMode, setViewMode] = useState('table') // 'table' or 'cards'
+  const [viewMode, setViewMode] = useState('table')
 
   const loadCustomers = async () => {
     setLoading(true)
@@ -97,7 +97,6 @@ export default function CustomersPage() {
       return false
     }
     
-    // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(form.email)) {
       alert('Please enter a valid email address')
@@ -222,7 +221,6 @@ export default function CustomersPage() {
     }
   }
 
-  // Calculate overall stats
   const totalCustomers = customers.length
   const contractCustomers = customers.filter(c => c.customer_type === 'Contract').length
   const walkInCustomers = customers.filter(c => c.customer_type === 'Walk-in').length
@@ -246,7 +244,6 @@ export default function CustomersPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -284,7 +281,6 @@ export default function CustomersPage() {
           </div>
         </div>
 
-        {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
             <div className="flex items-center">
@@ -343,7 +339,6 @@ export default function CustomersPage() {
           </div>
         </div>
 
-        {/* Search and Filters */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -382,7 +377,6 @@ export default function CustomersPage() {
           </div>
         </div>
 
-        {/* Customer Display */}
         {viewMode === 'table' ? (
           <Card title="Customer List">
             <div className="overflow-x-auto">
@@ -555,7 +549,6 @@ export default function CustomersPage() {
           </div>
         )}
 
-        {/* Add/Edit Customer Modal */}
         {showAddForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-full overflow-y-auto">

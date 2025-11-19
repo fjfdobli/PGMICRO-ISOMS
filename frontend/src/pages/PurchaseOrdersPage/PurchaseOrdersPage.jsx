@@ -4,22 +4,16 @@ import Card from '../../components/Card'
 import Button from '../../components/Button'
 
 export default function PurchaseOrdersPage() {
-  // Get current user from Redux store AND App.jsx user prop
   const { user: reduxUser, isAuthenticated } = useSelector(state => state.auth)
-  
-  // Also try to get user from App.jsx if Redux fails
   const [currentUser, setCurrentUser] = useState(null)
   const [userLoading, setUserLoading] = useState(false)
   
-  // Debug: Log user information
   useEffect(() => {
-    // Try to get user from localStorage as fallback if Redux user is null
     const authToken = localStorage.getItem('authToken')
     
     if (reduxUser) {
       setCurrentUser(reduxUser)
     } else if (authToken && !currentUser && !userLoading) {
-      // Try to get user data from API
       fetchCurrentUser()
     }
   }, [reduxUser, isAuthenticated, currentUser, userLoading])
@@ -45,13 +39,11 @@ export default function PurchaseOrdersPage() {
     }
   }
   
-  // Use the available user data (Redux first, then fallback)
   const user = reduxUser || currentUser
-  
   const [suppliers, setSuppliers] = useState([])
-  const [inventoryProducts, setInventoryProducts] = useState([]) // Products from inventory
+  const [inventoryProducts, setInventoryProducts] = useState([]) 
   const [purchaseOrders, setPurchaseOrders] = useState([])
-  const [cart, setCart] = useState([]) // Shopping cart for selected products
+  const [cart, setCart] = useState([]) 
   const [supplierId, setSupplierId] = useState('')
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -59,7 +51,7 @@ export default function PurchaseOrdersPage() {
   const [selectedCategory, setSelectedCategory] = useState('')
   const [expectedDelivery, setExpectedDelivery] = useState('')
   const [notes, setNotes] = useState('')
-  const [viewMode, setViewMode] = useState('suppliers') // 'suppliers', 'products', 'cart', 'history'
+  const [viewMode, setViewMode] = useState('suppliers')
   const [selectedPO, setSelectedPO] = useState(null)
   const [showPOModal, setShowPOModal] = useState(false)
   const [showSupplierForm, setShowSupplierForm] = useState(false)
@@ -72,14 +64,12 @@ export default function PurchaseOrdersPage() {
     contactPerson: ''
   })
   
-  // Payment tracking states
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [selectedPOForPayment, setSelectedPOForPayment] = useState(null)
   const [paymentData, setPaymentData] = useState({
     paymentDate: '',
     amount: '',
     paymentMethod: '',
-    // Payment method specific fields
     bankDetails: {
       accountNumber: '',
       bankName: '',
@@ -106,7 +96,6 @@ export default function PurchaseOrdersPage() {
     }
   })
 
-  // Expenses Modal States
   const [showExpensesModal, setShowExpensesModal] = useState(false)
   const [expenses, setExpenses] = useState([])
   const [expenseFilters, setExpenseFilters] = useState({
@@ -131,41 +120,8 @@ export default function PurchaseOrdersPage() {
       //   fetch('http://localhost:3002/api/suppliers'),
       //   fetch('http://localhost:3002/api/inventory')
       // ])
-      
-      // Inventory products (from your existing inventory data)
-      const staticInventoryProducts = [
-        // Processors
-        { id: 1, productDescription: "Intel Core i9-14900K Processor", brand: "Intel", model: "Core i9-14900K", category: "Processor", purchasePrice: 28000, sellingPrice: 35000, itemStatus: "available", reorderPoint: 2, supplier_id: 1 },
-        { id: 2, productDescription: "AMD Ryzen 9 7950X Processor", brand: "AMD", model: "Ryzen 9 7950X", category: "Processor", purchasePrice: 32000, sellingPrice: 38000, itemStatus: "available", reorderPoint: 2, supplier_id: 1 },
-        
-        // Motherboards  
-        { id: 3, productDescription: "ASUS ROG STRIX Z790-E Gaming WiFi", brand: "ASUS", model: "ROG STRIX Z790-E", category: "Motherboards", purchasePrice: 18000, sellingPrice: 24000, itemStatus: "available", reorderPoint: 2, supplier_id: 1 },
-        { id: 4, productDescription: "MSI MAG B650 TOMAHAWK WiFi", brand: "MSI", model: "MAG B650 TOMAHAWK", category: "Motherboards", purchasePrice: 12000, sellingPrice: 16000, itemStatus: "available", reorderPoint: 3, supplier_id: 1 },
-        
-        // Video Cards
-        { id: 5, productDescription: "NVIDIA GeForce RTX 4090 24GB", brand: "NVIDIA", model: "GeForce RTX 4090", category: "Video Cards", purchasePrice: 85000, sellingPrice: 95000, itemStatus: "available", reorderPoint: 1, supplier_id: 2 },
-        { id: 6, productDescription: "AMD Radeon RX 7800 XT", brand: "AMD", model: "Radeon RX 7800 XT", category: "Video Cards", purchasePrice: 32000, sellingPrice: 38000, itemStatus: "available", reorderPoint: 2, supplier_id: 2 },
-        
-        // Monitors
-        { id: 7, productDescription: "ASUS ROG Swift PG27AQN 27inch 360Hz", brand: "ASUS", model: "ROG Swift PG27AQN", category: "Monitors", purchasePrice: 45000, sellingPrice: 52000, itemStatus: "available", reorderPoint: 1, supplier_id: 2 },
-        { id: 8, productDescription: "LG UltraGear 27GP950-B 4K 144Hz", brand: "LG", model: "UltraGear 27GP950-B", category: "Monitors", purchasePrice: 35000, sellingPrice: 42000, itemStatus: "available", reorderPoint: 2, supplier_id: 2 },
-        
-        // Laptops
-        { id: 9, productDescription: "ASUS ROG Zephyrus G16 Gaming Laptop", brand: "ASUS", model: "ROG Zephyrus G16", category: "Laptops", purchasePrice: 95000, sellingPrice: 110000, itemStatus: "available", reorderPoint: 1, supplier_id: 3 },
-        { id: 10, productDescription: "MacBook Pro 16inch M3 Max", brand: "Apple", model: "MacBook Pro 16 M3 Max", category: "Laptops", purchasePrice: 150000, sellingPrice: 165000, itemStatus: "available", reorderPoint: 1, supplier_id: 3 },
-        
-        // Printers
-        { id: 11, productDescription: "HP LaserJet Pro M404dw Wireless", brand: "HP", model: "LaserJet Pro M404dw", category: "Printers", purchasePrice: 12000, sellingPrice: 16000, itemStatus: "available", reorderPoint: 3, supplier_id: 4 },
-        { id: 12, productDescription: "Canon PIXMA G6020 MegaTank", brand: "Canon", model: "PIXMA G6020", category: "Printers", purchasePrice: 15000, sellingPrice: 19000, itemStatus: "available", reorderPoint: 3, supplier_id: 4 },
-        
-        // Toners & Inks
-        { id: 13, productDescription: "HP 414A Black Toner Cartridge", brand: "HP", model: "414A Black", category: "Toners", purchasePrice: 3500, sellingPrice: 4800, itemStatus: "available", reorderPoint: 10, supplier_id: 4 },
-        { id: 14, productDescription: "Canon PGI-280XL Black Ink", brand: "Canon", model: "PGI-280XL Black", category: "Inks", purchasePrice: 1200, sellingPrice: 1800, itemStatus: "available", reorderPoint: 20, supplier_id: 4 }
-      ]
-
+    
       const staticPurchaseOrders = []
-
-      // Load suppliers from localStorage if available
       const savedSuppliers = localStorage.getItem('purchaseOrder_suppliers')
       if (savedSuppliers) {
         try {
@@ -181,8 +137,6 @@ export default function PurchaseOrdersPage() {
       
       setInventoryProducts(staticInventoryProducts)
       setPurchaseOrders(staticPurchaseOrders)
-
-      // Load expenses from localStorage
       const savedExpenses = localStorage.getItem('company_expenses')
       if (savedExpenses) {
         try {
@@ -205,10 +159,8 @@ export default function PurchaseOrdersPage() {
     }
   }
 
-  // Get unique categories from inventory
   const categories = [...new Set(inventoryProducts.map(p => p.category))]
 
-  // Filter products by category and search
   const filteredProducts = useMemo(() => {
     let filtered = inventoryProducts
     
@@ -229,16 +181,12 @@ export default function PurchaseOrdersPage() {
 
   const selectedSupplier = suppliers.find(s => s.id === supplierId)
 
-  // Cart management functions - Serial number based (no quantities)
   const addToCart = (product) => {
     setCart(prev => {
-      // Check if product already exists (each product should be unique)
       const existingItem = prev.find(item => item.id === product.id)
       if (existingItem) {
-        // Product already in cart, don't add duplicate
         return prev
       }
-      // Add product as unique item (no quantity needed for serial-based products)
       return [...prev, { ...product }]
     })
   }
@@ -256,7 +204,6 @@ export default function PurchaseOrdersPage() {
     [cart]
   )
 
-  // Supplier management functions
   const handleAddSupplier = async () => {
     try {
       setSaving(true)
@@ -268,25 +215,19 @@ export default function PurchaseOrdersPage() {
       //   body: JSON.stringify(newSupplier)
       // })
       
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 500))
-      
-      // Generate proper ID that doesn't conflict with existing suppliers
       const maxId = suppliers.length > 0 ? Math.max(...suppliers.map(s => s.id)) : 0
       
       const supplierWithId = {
         ...newSupplier,
         id: maxId + 1,
         status: 'active',
-        specialties: [] // Add empty specialties array for consistency
+        specialties: [] 
       }
       
       const updatedSuppliers = [...suppliers, supplierWithId]
       setSuppliers(updatedSuppliers)
-      
-      // Save to localStorage for persistence
       localStorage.setItem('purchaseOrder_suppliers', JSON.stringify(updatedSuppliers))
-      
       setNewSupplier({ name: '', address: '', contactNumber: '', email: '', contactPerson: '' })
       setShowSupplierForm(false)
       alert('Supplier added successfully!')
@@ -300,18 +241,12 @@ export default function PurchaseOrdersPage() {
   const handleUpdateSupplier = async () => {
     try {
       setSaving(true)
-      
-      // TODO: Replace with actual API call
       await new Promise(resolve => setTimeout(resolve, 500))
-      
       const updatedSuppliers = suppliers.map(s => 
         s.id === editingSupplier.id ? { ...newSupplier, id: editingSupplier.id } : s
       )
       setSuppliers(updatedSuppliers)
-      
-      // Save to localStorage for persistence
       localStorage.setItem('purchaseOrder_suppliers', JSON.stringify(updatedSuppliers))
-      
       setEditingSupplier(null)
       setNewSupplier({ name: '', address: '', contactNumber: '', email: '', contactPerson: '' })
       setShowSupplierForm(false)
@@ -324,7 +259,6 @@ export default function PurchaseOrdersPage() {
   }
 
   const handleRemoveSupplier = async (supplierId, supplierName) => {
-    // Check if supplier has any purchase orders
     const hasOrders = purchaseOrders.some(po => po.supplier_id === supplierId)
     
     if (hasOrders) {
@@ -332,7 +266,6 @@ export default function PurchaseOrdersPage() {
       return
     }
 
-    // Confirm removal
     if (!window.confirm(`Are you sure you want to remove "${supplierName}"?\n\nThis action cannot be undone.`)) {
       return
     }
@@ -345,18 +278,14 @@ export default function PurchaseOrdersPage() {
       //   method: 'DELETE'
       // })
       
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 500))
       
       const updatedSuppliers = suppliers.filter(s => s.id !== supplierId)
       setSuppliers(updatedSuppliers)
-      
-      // Save to localStorage for persistence
       localStorage.setItem('purchaseOrder_suppliers', JSON.stringify(updatedSuppliers))
-      
-      alert(`✅ ${supplierName} has been removed successfully!`)
+      alert(`${supplierName} has been removed successfully!`)
     } catch (error) {
-      alert('❌ Error removing supplier: ' + error.message)
+      alert('Error removing supplier: ' + error.message)
     } finally {
       setSaving(false)
     }
@@ -427,11 +356,8 @@ export default function PurchaseOrdersPage() {
       
       setPurchaseOrders(updatedPOs)
       localStorage.setItem('purchaseOrders', JSON.stringify(updatedPOs))
-
-      // Record payment as expense
       recordPOPaymentAsExpense(selectedPOForPayment, paymentData)
 
-      // Reset payment form
       setPaymentData({ 
         paymentDate: '', 
         amount: '', 
@@ -445,9 +371,9 @@ export default function PurchaseOrdersPage() {
       setShowPaymentModal(false)
       setSelectedPOForPayment(null)
       
-      alert('✅ Payment recorded successfully!')
+      alert('Payment recorded successfully!')
     } catch (error) {
-      alert('❌ Error recording payment: ' + error.message)
+      alert('Error recording payment: ' + error.message)
     } finally {
       setSaving(false)
     }
@@ -456,10 +382,9 @@ export default function PurchaseOrdersPage() {
   const openPaymentModal = (po) => {
     setSelectedPOForPayment(po)
     setPaymentData({
-      paymentDate: new Date().toISOString().split('T')[0], // Default to today
-      amount: po.total.toString(), // Default to full amount
+      paymentDate: new Date().toISOString().split('T')[0],
+      amount: po.total.toString(), 
       paymentMethod: '',
-      // Reset all payment method specific fields
       bankDetails: {
         accountNumber: '',
         bankName: '',
@@ -488,7 +413,6 @@ export default function PurchaseOrdersPage() {
     setShowPaymentModal(true)
   }
 
-  // Expenses Management Functions
   const addExpense = (expenseData) => {
     const newExpense = {
       id: `EXP-${new Date().getFullYear()}-${String(expenses.length + 1).padStart(4, '0')}`,
@@ -597,12 +521,9 @@ export default function PurchaseOrdersPage() {
       }
 
       if (user) {
-        // Try different possible field names for the user's name
         const firstName = user.first_name || user.firstName || user.fname || ''
         const lastName = user.last_name || user.lastName || user.lname || ''
         const email = user.email || user.emailAddress || ''
-        
-        // Build full name from available fields
         const fullName = `${firstName} ${lastName}`.trim()
         
         employeeInfo = {
@@ -612,18 +533,16 @@ export default function PurchaseOrdersPage() {
         }
       }
       
-      // Create new PO object with employee information
       const newPO = {
         id: poId,
         supplier_id: supplierId,
         supplier_name: selectedSupplier.name,
         supplier_email: selectedSupplier.email,
-        status: 'Pending', // Will change to 'Sent', then 'Received', then can be 'Paid'
+        status: 'Pending', 
         total: cartTotal,
         created_date: new Date().toISOString().split('T')[0],
         expected_delivery: expectedDelivery || null,
         notes: notes || null,
-        // Employee information - who handles this PO
         ...employeeInfo,
         created_at: new Date().toISOString(),
         items: cart.map(item => ({
@@ -631,33 +550,25 @@ export default function PurchaseOrdersPage() {
           brand: item.brand,
           model: item.model,
           category: item.category,
-          quantity: 1, // Each product is unique (serial-based)
+          quantity: 1, 
           unit_price: item.purchasePrice,
           line_total: item.purchasePrice
         }))
       }
 
-      // Send email to supplier
       await sendPurchaseOrderEmail(newPO)
-
-      // Update status to 'Sent' after email is successfully sent
       newPO.status = 'Sent'
-
-      // Add to purchase orders list
       setPurchaseOrders(prev => [newPO, ...prev])
-
-      // Reset cart and form
       clearCart()
       setSupplierId('')
       setExpectedDelivery('')
       setNotes('')
       
-      alert(`✅ Purchase Order ${newPO.id} sent successfully to ${selectedSupplier.name}!\n\n📧 Email sent to: ${selectedSupplier.email}\n👤 Handled by: ${newPO.handled_by_employee_name}`)
+      alert(`Purchase Order ${newPO.id} sent successfully to ${selectedSupplier.name}!\n\nEmail sent to: ${selectedSupplier.email}\n👤 Handled by: ${newPO.handled_by_employee_name}`)
       
-      // Switch to history view to see the new PO
       setViewMode('history')
     } catch (error) {
-      alert('❌ Error sending purchase order: ' + error.message)
+      alert('Error sending purchase order: ' + error.message)
     } finally {
       setSaving(false)
     }
@@ -666,15 +577,11 @@ export default function PurchaseOrdersPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-7xl mx-auto">
-        {/* Enhanced Header with Modern Design */}
         <div className="mb-10">
           <div className="relative">
-            {/* Background Gradient */}
             <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 rounded-3xl opacity-5"></div>
-            
             <div className="relative bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-6 lg:space-y-0">
-                {/* Title Section */}
                 <div className="flex items-center space-x-4">
                   <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
                     <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -692,7 +599,7 @@ export default function PurchaseOrdersPage() {
                           </span>
                         </div>
                         <p className="text-sm text-gray-500">
-                          👤 Current user: <span className="font-medium text-gray-700">
+                          Current user: <span className="font-medium text-gray-700">
                             {user.first_name && user.last_name 
                               ? `${user.first_name} ${user.last_name}` 
                               : user.firstName && user.lastName
@@ -711,7 +618,6 @@ export default function PurchaseOrdersPage() {
                   </div>
         </div>
         
-                {/* Enhanced Navigation Tabs */}
                 <div className="flex flex-wrap gap-2">
                   <div className="bg-gray-50 border border-gray-200 rounded-2xl p-2 flex flex-wrap gap-1">
                     <button
@@ -802,10 +708,8 @@ export default function PurchaseOrdersPage() {
           </div>
         </div>
         
-        {/* Enhanced Suppliers Management View */}
         {viewMode === 'suppliers' && (
           <div className="space-y-8">
-            {/* Header Section */}
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl opacity-5"></div>
               <div className="relative bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -828,11 +732,9 @@ export default function PurchaseOrdersPage() {
               </div>
                 </div>
 
-            {/* Enhanced Suppliers Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {suppliers.map(supplier => (
                 <div key={supplier.id} className="group bg-white rounded-2xl border border-gray-100 hover:border-purple-200 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
-                  {/* Supplier Header */}
                   <div className="flex items-start justify-between mb-6">
                     <div className="flex items-center space-x-4">
                       <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-blue-100 rounded-xl flex items-center justify-center group-hover:from-purple-200 group-hover:to-blue-200 transition-colors">
@@ -854,7 +756,6 @@ export default function PurchaseOrdersPage() {
                       </span>
                     </div>
                   
-                  {/* Contact Information */}
                   <div className="space-y-3 text-sm mb-6">
                     <div className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors">
                       <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -885,7 +786,6 @@ export default function PurchaseOrdersPage() {
                     </div>
                   </div>
 
-                  {/* Specialties */}
                   {supplier.specialties && (
                     <div className="mb-6">
                       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Specialties</p>
@@ -899,7 +799,6 @@ export default function PurchaseOrdersPage() {
                         </div>
                       )}
                   
-                  {/* Action Buttons */}
                   <div className="flex space-x-2">
                     <button
                       onClick={() => {
@@ -933,7 +832,6 @@ export default function PurchaseOrdersPage() {
               ))}
             </div>
 
-            {/* Empty State */}
             {suppliers.length === 0 && (
               <div className="text-center py-16">
                 <div className="relative">
@@ -949,10 +847,8 @@ export default function PurchaseOrdersPage() {
               </div>
         )}
 
-        {/* Products Catalog View - Modern Card Design */}
         {viewMode === 'products' && (
           <div className="space-y-8">
-            {/* Enhanced Header with Supplier Info */}
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl opacity-10"></div>
               <div className="relative bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -1044,11 +940,9 @@ export default function PurchaseOrdersPage() {
                     </div>
                     </div>
 
-                {/* Enhanced Products Grid with Modern Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
                   {filteredProducts.map(product => (
                     <div key={product.id} className="group bg-white rounded-2xl border border-gray-200 hover:border-purple-300 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 flex flex-col h-full">
-                      {/* Product Header */}
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-3">
                           <span className="inline-flex px-3 py-1 text-xs font-semibold bg-purple-100 text-purple-700 rounded-full">
@@ -1062,7 +956,6 @@ export default function PurchaseOrdersPage() {
                           <span className="font-semibold">{product.brand}</span> • {product.model}
                         </p>
                       
-                        {/* Price Section */}
                         <div className="mb-6">
                           <div className="flex items-baseline space-x-2 mb-2">
                             <span className="text-3xl font-bold text-purple-600">
@@ -1078,7 +971,6 @@ export default function PurchaseOrdersPage() {
                         </div>
                       </div>
                       
-                      {/* Add to Cart Button - Always Visible */}
                       <div className="mt-auto pt-4 border-t border-gray-100">
                         {cart.find(item => item.id === product.id) ? (
                           <button
@@ -1091,7 +983,6 @@ export default function PurchaseOrdersPage() {
                           <button
                             onClick={() => {
                               addToCart(product)
-                              // Create a more elegant notification
                               const notification = document.createElement('div')
                               notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50'
                               notification.innerHTML = `Added ${product.brand} ${product.model} to cart!`
@@ -1108,7 +999,6 @@ export default function PurchaseOrdersPage() {
                   ))}
                         </div>
 
-                {/* Enhanced Empty State */}
                 {filteredProducts.length === 0 && (
                   <div className="text-center py-16">
                     <div className="relative">
@@ -1135,7 +1025,6 @@ export default function PurchaseOrdersPage() {
                 </div>
         )}
 
-        {/* Shopping Cart View - Clean Design */}
         {viewMode === 'cart' && (
           <div className="space-y-8">
             {/* Header Section */}
@@ -1178,7 +1067,6 @@ export default function PurchaseOrdersPage() {
               </div>
             ) : (
               <>
-                {/* Cart Items - Clean List Design */}
                 <div className="space-y-4">
                   {cart.map(item => (
                     <div key={item.id} className="bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-md transition-all duration-200">
@@ -1219,7 +1107,6 @@ export default function PurchaseOrdersPage() {
                   ))}
                 </div>
 
-                {/* Checkout Section - Clean Design */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
                   <h3 className="text-2xl font-bold text-gray-900 mb-6">Checkout & Send to Supplier</h3>
                   
@@ -1301,7 +1188,6 @@ export default function PurchaseOrdersPage() {
                 </div>
         )}
 
-        {/* Purchase Order History View */}
         {viewMode === 'history' && (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-gray-900">Purchase Order History</h2>
@@ -1403,29 +1289,27 @@ export default function PurchaseOrdersPage() {
                               }}
                               className="text-purple-600 hover:text-purple-900 transition-colors"
                             >
-                              👁️ View
+                              View
                                 </button>
-                            {/* Only show Pay button for Received orders that haven't been fully paid */}
                             {po.status === 'Received' && (!po.paidAmount || po.paidAmount < po.total) && (
                               <button
                                 onClick={() => openPaymentModal(po)}
                                 className="text-green-600 hover:text-green-900 transition-colors ml-3"
                               >
-                                💳 Pay
+                                Pay
                               </button>
                             )}
-                            {/* Show Mark as Received button for Sent/Processing orders */}
                             {(po.status === 'Sent' || po.status === 'Processing') && (
                               <button
                                 onClick={() => {
                                   setPurchaseOrders(prev => prev.map(p => 
                                     p.id === po.id ? { ...p, status: 'Received' } : p
                                   ))
-                                  alert('✅ Order marked as received! You can now process payment.')
+                                  alert('Order marked as received! You can now process payment.')
                                 }}
                                 className="text-blue-600 hover:text-blue-900 transition-colors ml-3"
                               >
-                                📦 Mark Received
+                                Mark Received
                               </button>
                             )}
                               </td>
@@ -1439,7 +1323,6 @@ export default function PurchaseOrdersPage() {
                 </div>
         )}
 
-        {/* Supplier Form Modal */}
         {showSupplierForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg max-w-md w-full">
@@ -1535,7 +1418,6 @@ export default function PurchaseOrdersPage() {
                   </div>
                 )}
 
-        {/* Enhanced Payment Modal with Dynamic Fields */}
         {showPaymentModal && selectedPOForPayment && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -1564,7 +1446,6 @@ export default function PurchaseOrdersPage() {
               </div>
               
               <div className="p-6 space-y-6">
-                {/* Payment Date */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Payment Date <span className="text-red-500">*</span>
@@ -1577,7 +1458,6 @@ export default function PurchaseOrdersPage() {
                   />
                 </div>
 
-                {/* Amount */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Amount <span className="text-red-500">*</span>
@@ -1607,7 +1487,6 @@ export default function PurchaseOrdersPage() {
                   </div>
                 </div>
 
-                {/* Payment Method */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Payment Method <span className="text-red-500">*</span>
@@ -1618,18 +1497,17 @@ export default function PurchaseOrdersPage() {
                     className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
                   >
                     <option value="">Select payment method...</option>
-                    <option value="Cash">💵 Cash</option>
-                    <option value="Bank Transfer">🏦 Bank Transfer</option>
-                    <option value="Check">📝 Check</option>
-                    <option value="Credit Card">💳 Credit Card</option>
-                    <option value="Online Payment">🌐 Online Payment</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Bank Transfer">Bank Transfer</option>
+                    <option value="Check">Check</option>
+                    <option value="Credit Card">Credit Card</option>
+                    <option value="Online Payment">Online Payment</option>
                   </select>
                 </div>
 
-                {/* Dynamic Payment Method Fields */}
                 {paymentData.paymentMethod === 'Bank Transfer' && (
                   <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-4">
-                    <h4 className="text-sm font-semibold text-blue-800 mb-3">🏦 Bank Transfer Details</h4>
+                    <h4 className="text-sm font-semibold text-blue-800 mb-3">Bank Transfer Details</h4>
                     <div>
                       <label className="block text-xs font-medium text-blue-700 mb-1">Bank Name *</label>
                       <input
@@ -1674,7 +1552,7 @@ export default function PurchaseOrdersPage() {
 
                 {paymentData.paymentMethod === 'Check' && (
                   <div className="bg-green-50 border border-green-200 rounded-xl p-4 space-y-4">
-                    <h4 className="text-sm font-semibold text-green-800 mb-3">📝 Check Details</h4>
+                    <h4 className="text-sm font-semibold text-green-800 mb-3">Check Details</h4>
                     <div>
                       <label className="block text-xs font-medium text-green-700 mb-1">Check Number *</label>
                       <input
@@ -1718,7 +1596,7 @@ export default function PurchaseOrdersPage() {
 
                 {paymentData.paymentMethod === 'Credit Card' && (
                   <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 space-y-4">
-                    <h4 className="text-sm font-semibold text-purple-800 mb-3">💳 Credit Card Details</h4>
+                    <h4 className="text-sm font-semibold text-purple-800 mb-3">Credit Card Details</h4>
                     <div>
                       <label className="block text-xs font-medium text-purple-700 mb-1">Card Number (Last 4 digits) *</label>
                       <input
@@ -1764,7 +1642,7 @@ export default function PurchaseOrdersPage() {
 
                 {paymentData.paymentMethod === 'Online Payment' && (
                   <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 space-y-4">
-                    <h4 className="text-sm font-semibold text-indigo-800 mb-3">🌐 Online Payment Details</h4>
+                    <h4 className="text-sm font-semibold text-indigo-800 mb-3">Online Payment Details</h4>
                     <div>
                       <label className="block text-xs font-medium text-indigo-700 mb-1">Platform *</label>
                       <select
@@ -1814,7 +1692,7 @@ export default function PurchaseOrdersPage() {
 
                 {paymentData.paymentMethod === 'Cash' && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-                    <h4 className="text-sm font-semibold text-yellow-800 mb-2">💵 Cash Payment</h4>
+                    <h4 className="text-sm font-semibold text-yellow-800 mb-2">Cash Payment</h4>
                     <p className="text-xs text-yellow-700">
                       Cash payment selected. No additional details required.
                     </p>
@@ -1866,7 +1744,6 @@ export default function PurchaseOrdersPage() {
           </div>
         )}
 
-        {/* Purchase Order Details Modal */}
         {showPOModal && selectedPO && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -1875,7 +1752,7 @@ export default function PurchaseOrdersPage() {
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900">{selectedPO.id}</h2>
                     <p className="text-gray-600">{selectedPO.supplier_name}</p>
-                    <p className="text-sm text-gray-500">📧 Sent to: {selectedPO.supplier_email}</p>
+                    <p className="text-sm text-gray-500">Sent to: {selectedPO.supplier_email}</p>
                     {selectedPO.handled_by_employee_name && (
                       <div className="mt-2 flex items-center">
                         <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-2">
@@ -1884,7 +1761,7 @@ export default function PurchaseOrdersPage() {
                           </span>
                         </div>
                         <p className="text-sm text-gray-600">
-                          👤 Handled by: <span className="font-medium">{selectedPO.handled_by_employee_name}</span>
+                          Handled by: <span className="font-medium">{selectedPO.handled_by_employee_name}</span>
                         </p>
                       </div>
                     )}
@@ -1920,7 +1797,6 @@ export default function PurchaseOrdersPage() {
                   </div>
                 </div>
 
-                {/* Payment Information */}
                 {selectedPO.paidAmount && (
                   <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
                     <h3 className="text-sm font-semibold text-green-800 mb-3">Payment Information</h3>
@@ -1980,17 +1856,15 @@ export default function PurchaseOrdersPage() {
           </div>
         )}
 
-        {/* Expenses Modal - Alternative Design */}
         {showExpensesModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl max-w-7xl w-full max-h-[90vh] overflow-hidden">
-              {/* Modern Header with Tabs */}
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 opacity-10"></div>
                 <div className="relative bg-white border-b border-gray-200 p-6">
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                      <h2 className="text-3xl font-bold text-gray-900">💰 Company Expenses</h2>
+                      <h2 className="text-3xl font-bold text-gray-900">Company Expenses</h2>
                       <p className="text-gray-600 mt-1">Financial overview and expense tracking</p>
                     </div>
                     <button
@@ -2003,13 +1877,11 @@ export default function PurchaseOrdersPage() {
                     </button>
                   </div>
 
-                  {/* Summary Cards - Redesigned */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     {(() => {
                       const summary = getExpensesSummary()
                       return (
                         <>
-                          {/* Total Expenses Card */}
                           <div className="relative group">
                             <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl opacity-5 group-hover:opacity-10 transition-opacity"></div>
                             <div className="relative bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-all duration-200">
@@ -2026,7 +1898,6 @@ export default function PurchaseOrdersPage() {
                             </div>
                           </div>
 
-                          {/* Total Records Card */}
                           <div className="relative group">
                             <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl opacity-5 group-hover:opacity-10 transition-opacity"></div>
                             <div className="relative bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-all duration-200">
@@ -2043,7 +1914,6 @@ export default function PurchaseOrdersPage() {
                             </div>
                           </div>
 
-                          {/* PO Payments Card */}
                           <div className="relative group">
                             <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl opacity-5 group-hover:opacity-10 transition-opacity"></div>
                             <div className="relative bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-all duration-200">
@@ -2060,7 +1930,6 @@ export default function PurchaseOrdersPage() {
                             </div>
                           </div>
 
-                          {/* This Month Card */}
                           <div className="relative group">
                             <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl opacity-5 group-hover:opacity-10 transition-opacity"></div>
                             <div className="relative bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-all duration-200">
@@ -2087,9 +1956,7 @@ export default function PurchaseOrdersPage() {
                 </div>
               </div>
 
-              {/* Modal Content */}
               <div className="p-6 overflow-y-auto max-h-[calc(90vh-280px)]">
-                {/* Enhanced Filters Section */}
                 <div className="relative mb-6">
                   <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl opacity-5"></div>
                   <div className="relative bg-white border border-gray-200 rounded-xl p-4">
@@ -2176,7 +2043,6 @@ export default function PurchaseOrdersPage() {
                   </div>
                 </div>
 
-                {/* Modern Expenses Table */}
                 <div className="relative">
                   <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl opacity-5"></div>
                   <div className="relative bg-white border border-gray-200 rounded-xl overflow-hidden">

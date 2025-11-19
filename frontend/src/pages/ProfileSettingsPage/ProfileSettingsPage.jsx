@@ -93,12 +93,8 @@ export default function ProfileSettingsPage() {
       if (response.success) {
         showToast('Profile updated successfully!', 'success')
         setIsEditing(false)
-        
-        // Update localStorage
         const userData = JSON.parse(localStorage.getItem('userData') || '{}')
         localStorage.setItem('userData', JSON.stringify({ ...userData, ...response.user }))
-        
-        // Refresh user data in Redux to get updated info including timestamps
         dispatch(getCurrentUser())
       } else {
         showToast(response.message || 'Failed to update profile', 'error')
