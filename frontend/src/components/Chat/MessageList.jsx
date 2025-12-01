@@ -128,7 +128,6 @@ export default function MessageList({ messages, loading, currentUserId, conversa
                 <span className="text-xs text-gray-600 mb-1 px-2">{senderName}</span>
               )}
               
-              {/* Message Content */}
               {message.file_url ? (
                 <div>
                   {isImageFile(message.file_type) ? (
@@ -176,7 +175,6 @@ export default function MessageList({ messages, loading, currentUserId, conversa
                       </div>
                     </div>
                   ) : (
-                    // File Download/View Card (PDF, DOCX, XLSX, etc.)
                     <div
                       onClick={() => handleFileClick(message)}
                       className={`flex items-center gap-3 p-3 rounded-lg border transition-colors cursor-pointer min-w-[280px] max-w-md shadow-sm ${
@@ -224,20 +222,17 @@ export default function MessageList({ messages, loading, currentUserId, conversa
                 </div>
               )}
 
-              {/* Timestamp */}
               <div className={`text-xs mt-1 px-2 ${isOwn ? 'text-gray-500' : 'text-gray-500'}`}>
                 {formatTime(message.created_at)}
                 {message.is_edited && <span className="ml-1">(edited)</span>}
               </div>
 
-              {/* Read receipt */}
               {isOwn && message.read_by && message.read_by.length > 0 && (
                 <div className="text-xs text-gray-500 mt-1 px-2">
                   Seen {formatTime(message.read_by[0].read_at)}
                 </div>
               )}
 
-              {/* Delete button */}
               {isOwn && (
                 <button
                   onClick={() => handleDelete(message.id)}

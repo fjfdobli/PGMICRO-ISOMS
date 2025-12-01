@@ -252,9 +252,9 @@ router.post('/register', async (req, res) => {
     )
 
     const user = newUser[0]
-    console.log('New user from database:', user)
-    console.log('Raw allowed_modules from database:', user.allowed_modules)
-    console.log('Type of allowed_modules from new user:', typeof user.allowed_modules)
+   // console.log('New user from database:', user)
+   // console.log('Raw allowed_modules from database:', user.allowed_modules)
+   // console.log('Type of allowed_modules from new user:', typeof user.allowed_modules)
     
     if (user.allowed_modules) {
       if (typeof user.allowed_modules === 'string') {
@@ -327,24 +327,24 @@ router.get('/me', authenticateToken, async (req, res) => {
       try {
         if (typeof user.allowed_modules === 'string') {
           user.allowed_modules = JSON.parse(user.allowed_modules)
-          console.log('Parsed allowed_modules from string:', user.allowed_modules)
+    //      console.log('Parsed allowed_modules from string:', user.allowed_modules)
         } else if (Array.isArray(user.allowed_modules)) {
-          console.log('allowed_modules already an array:', user.allowed_modules)
+     //     console.log('allowed_modules already an array:', user.allowed_modules)
         } else {
-          console.log('allowed_modules is object, converting:', user.allowed_modules)
+     //     console.log('allowed_modules is object, converting:', user.allowed_modules)
           user.allowed_modules = Array.isArray(user.allowed_modules) ? user.allowed_modules : (user.account_type === 'admin' ? AVAILABLE_MODULES : ['dashboard'])
         }
       } catch (e) {
-        console.log('Error parsing allowed_modules in /me:', e)
+     //   console.log('Error parsing allowed_modules in /me:', e)
         user.allowed_modules = user.account_type === 'admin' ? AVAILABLE_MODULES : ['dashboard']
       }
     } else {
-      console.log('No allowed_modules found, setting defaults')
+    //  console.log('No allowed_modules found, setting defaults')
       user.allowed_modules = user.account_type === 'admin' ? AVAILABLE_MODULES : ['dashboard']
     }
 
-    console.log('Final user object from /me:', user)
-    console.log('Final allowed_modules from /me:', user.allowed_modules)
+//    console.log('Final user object from /me:', user)
+ //   console.log('Final allowed_modules from /me:', user.allowed_modules)
 
     res.json({
       success: true,
@@ -372,31 +372,31 @@ router.get('/users', requireAdmin, async (req, res) => {
     )
 
     const usersWithParsedModules = users.map(user => {
-      console.log(`Processing user ${user.id} for getAll:`, user)
-      console.log(`Raw allowed_modules for user ${user.id}:`, user.allowed_modules)
-      console.log(`Type of allowed_modules for user ${user.id}:`, typeof user.allowed_modules)
+    //  console.log(`Processing user ${user.id} for getAll:`, user)
+    //  console.log(`Raw allowed_modules for user ${user.id}:`, user.allowed_modules)
+    //  console.log(`Type of allowed_modules for user ${user.id}:`, typeof user.allowed_modules)
       
       if (user.allowed_modules) {
         if (typeof user.allowed_modules === 'string') {
           try {
             user.allowed_modules = JSON.parse(user.allowed_modules)
-            console.log(`Parsed allowed_modules from string for user ${user.id}:`, user.allowed_modules)
+     //       console.log(`Parsed allowed_modules from string for user ${user.id}:`, user.allowed_modules)
           } catch (e) {
-            console.log(`Failed to parse allowed_modules for user ${user.id}, setting to default`)
+    //        console.log(`Failed to parse allowed_modules for user ${user.id}, setting to default`)
             user.allowed_modules = user.account_type === 'admin' ? AVAILABLE_MODULES : ['dashboard']
           }
         } else if (Array.isArray(user.allowed_modules)) {
-          console.log(`allowed_modules is already an array for user ${user.id}:`, user.allowed_modules)
+    //      console.log(`allowed_modules is already an array for user ${user.id}:`, user.allowed_modules)
         } else {
-          console.log(`allowed_modules is not string or array for user ${user.id}, setting to default`)
+    //      console.log(`allowed_modules is not string or array for user ${user.id}, setting to default`)
           user.allowed_modules = user.account_type === 'admin' ? AVAILABLE_MODULES : ['dashboard']
         }
       } else {
-        console.log(`No allowed_modules found for user ${user.id}, setting to default`)
+   //     console.log(`No allowed_modules found for user ${user.id}, setting to default`)
         user.allowed_modules = user.account_type === 'admin' ? AVAILABLE_MODULES : ['dashboard']
       }
       
-      console.log(`Final processed allowed_modules for user ${user.id}:`, user.allowed_modules)
+ //     console.log(`Final processed allowed_modules for user ${user.id}:`, user.allowed_modules)
       return user
     })
 
@@ -419,9 +419,9 @@ router.put('/users/:id', requireAdmin, async (req, res) => {
     const { id } = req.params
     const { firstName, lastName, accountType, phone, address, allowed_modules, allowedModules, status } = req.body
 
-    console.log('Update user request body:', req.body)
-    console.log('Received allowed_modules:', allowed_modules)
-    console.log('Received allowedModules:', allowedModules)
+ //   console.log('Update user request body:', req.body)
+ //   console.log('Received allowed_modules:', allowed_modules)
+ //   console.log('Received allowedModules:', allowedModules)
 
     if (!firstName || !lastName || !accountType) {
       return res.status(400).json({ 
@@ -449,7 +449,7 @@ router.put('/users/:id', requireAdmin, async (req, res) => {
       modulesToSave = ['dashboard']
     }
 
-    console.log('Modules to save:', modulesToSave)
+//    console.log('Modules to save:', modulesToSave)
 
     await pool.execute(
       `UPDATE accounts SET 
@@ -468,31 +468,31 @@ router.put('/users/:id', requireAdmin, async (req, res) => {
     }
 
     const user = updatedUser[0]
-    console.log('Raw updated user from database:', user)
-    console.log('Raw allowed_modules from updated user:', user.allowed_modules)
-    console.log('Type of allowed_modules from updated user:', typeof user.allowed_modules)
+ //   console.log('Raw updated user from database:', user)
+ //   console.log('Raw allowed_modules from updated user:', user.allowed_modules)
+ //   console.log('Type of allowed_modules from updated user:', typeof user.allowed_modules)
     
     if (user.allowed_modules) {
       if (typeof user.allowed_modules === 'string') {
         try {
           user.allowed_modules = JSON.parse(user.allowed_modules)
-          console.log('Parsed allowed_modules from string:', user.allowed_modules)
+    //      console.log('Parsed allowed_modules from string:', user.allowed_modules)
         } catch (e) {
-          console.log('Failed to parse allowed_modules, setting to empty array')
+    //      console.log('Failed to parse allowed_modules, setting to empty array')
           user.allowed_modules = []
         }
       } else if (Array.isArray(user.allowed_modules)) {
-        console.log('allowed_modules is already an array:', user.allowed_modules)
+   //     console.log('allowed_modules is already an array:', user.allowed_modules)
       } else {
-        console.log('allowed_modules is not string or array, setting to empty array')
+  //      console.log('allowed_modules is not string or array, setting to empty array')
         user.allowed_modules = []
       }
     } else {
-      console.log('No allowed_modules found for updated user, setting to empty array')
+  //    console.log('No allowed_modules found for updated user, setting to empty array')
       user.allowed_modules = []
     }
 
-    console.log('Final user object being returned:', user)
+ //   console.log('Final user object being returned:', user)
     res.json({
       success: true,
       message: 'User updated successfully',
@@ -656,7 +656,7 @@ router.put('/users/:id/suspend', requireAdmin, async (req, res) => {
         reason.trim(),
         adminEmailConfig
       )
-      console.log('Suspension notification email sent successfully')
+  //    console.log('Suspension notification email sent successfully')
     } catch (emailError) {
       console.error('Failed to send suspension notification email:', emailError)
     }
@@ -715,7 +715,7 @@ router.put('/users/:id/unsuspend', requireAdmin, async (req, res) => {
         `${adminInfo[0].first_name} ${adminInfo[0].last_name}`,
         adminEmailConfig
       )
-      console.log('Reactivation notification email sent successfully')
+  //    console.log('Reactivation notification email sent successfully')
     } catch (emailError) {
       console.error('Failed to send reactivation notification email:', emailError)
     }
@@ -1016,13 +1016,13 @@ router.put('/status', authenticateToken, async (req, res) => {
       [status, userId]
     )
 
-    console.log(`Status updated for user ${userId}: ${status} (affected rows: ${result.affectedRows})`)
+ //   console.log(`Status updated for user ${userId}: ${status} (affected rows: ${result.affectedRows})`)
 
     const [users] = await pool.query(
       'SELECT user_status FROM accounts WHERE id = ?',
       [userId]
     )
-    console.log(`Verified user ${userId} status in DB: ${users[0]?.user_status}`)
+ //   console.log(`Verified user ${userId} status in DB: ${users[0]?.user_status}`)
 
     res.json({
       success: true,

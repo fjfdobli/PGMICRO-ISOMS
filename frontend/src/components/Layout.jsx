@@ -18,24 +18,20 @@ const NavItem = ({ to, label }) => (
 export default function Layout({ children }) {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
-  // Initialize sidebar as open on desktop, closed on mobile
   const [isSidebarOpen, setIsSidebarOpen] = useState(typeof window !== 'undefined' && window.innerWidth >= 768)
-  
-  // Get current theme from Redux - check multiple possible state structures
   const settings = useSelector((state) => state.settings || {})
   const theme = settings.appearance?.theme || settings.theme || 'light'
   const isDark = theme === 'dark'
   const [buttonKey, setButtonKey] = useState(0)
   
-  console.log('🎨 Layout theme:', theme, 'isDark:', isDark)
+ // console.log('Layout theme:', theme, 'isDark:', isDark)
 
   useEffect(() => {
     loadUserProfile()
   }, [])
   
-  // Force button re-render when theme changes
   useEffect(() => {
-    console.log('🔄 Theme changed, forcing button update')
+  // console.log('Theme changed, forcing button update')
     setButtonKey(prev => prev + 1)
   }, [theme, isDark])
 
@@ -64,24 +60,22 @@ export default function Layout({ children }) {
   const isAdmin = user?.account_type === 'admin'
   const userDisplayName = user ? `${user.first_name} ${user.last_name}` : ''
   const toggleSidebar = () => {
-    console.log('🍔 Toggle sidebar clicked! Current state:', isSidebarOpen, '→ New state:', !isSidebarOpen)
+   // console.log('Toggle sidebar clicked! Current state:', isSidebarOpen, '→ New state:', !isSidebarOpen)
     setIsSidebarOpen(!isSidebarOpen)
   }
 
   const closeSidebar = () => {
-    console.log('❌ Close sidebar clicked!')
+  //  console.log('Close sidebar clicked!')
     setIsSidebarOpen(false)
   }
 
-  // Debug: Log sidebar state
   useEffect(() => {
-    console.log('📊 Sidebar state changed:', isSidebarOpen ? 'OPEN' : 'CLOSED')
+  //  console.log('Sidebar state changed:', isSidebarOpen ? 'OPEN' : 'CLOSED')
   }, [isSidebarOpen])
 
   return (
     <div className="body-shell">
       <div className="flex">
-        {/* Sidebar Overlay for mobile */}
         {isSidebarOpen && (
           <div 
             className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
@@ -89,7 +83,6 @@ export default function Layout({ children }) {
           ></div>
         )}
 
-        {/* Sidebar */}
         <aside className={`
           fixed md:relative inset-y-0 left-0 z-50
           w-[var(--sidebar-w)] shrink-0 border-r bg-white
@@ -98,7 +91,6 @@ export default function Layout({ children }) {
         `}>
           <div className="px-4 py-4 flex items-center justify-between border-b">
             <div className="text-xl font-bold text-[var(--color-brand)]">PG Micro ISOMS</div>
-            {/* CLOSE BUTTON - Always visible in sidebar */}
             <button 
               key={`close-${buttonKey}`}
               className="p-3 rounded-lg transition-all border-2"
@@ -145,7 +137,6 @@ export default function Layout({ children }) {
         <div className="flex-1 min-w-0">
           <header className="bg-white border-b">
             <div className="max-w-7xl mx-auto px-4 h-14 flex items-center">
-              {/* OPEN BUTTON - Visible when sidebar closed */}
               {!isSidebarOpen && (
                 <button 
                   key={`open-${buttonKey}`}

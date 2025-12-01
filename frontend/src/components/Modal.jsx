@@ -2,14 +2,9 @@ import React, { useEffect } from 'react'
 import { X } from 'lucide-react'
 
 export default function Modal({ 
-  isOpen, 
-  onClose, 
-  title, 
-  children, 
-  size = 'md',
-  showCloseButton = true,
-  closeOnOverlayClick = true,
-  className = ''
+  isOpen, onClose, title, 
+  children, size = 'md', showCloseButton = true,
+  closeOnOverlayClick = true, className = ''
 }) {
   const sizeClasses = {
     sm: 'max-w-md',

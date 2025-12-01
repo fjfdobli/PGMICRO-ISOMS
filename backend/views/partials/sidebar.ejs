@@ -2,7 +2,6 @@
   <div class="sidebar-header">
     <div class="sidebar-title">API Reference</div>
     <div class="search-box">
-      <span class="search-icon">🔍</span>
       <input type="text" class="search-input" placeholder="Search endpoints..." id="searchInput">
     </div>
   </div>
@@ -34,7 +33,6 @@
               </span>
               <span class="endpoint-name"><%= endpoint.name %></span>
               <% if (endpoint.requiresAuth) { %>
-                <span class="endpoint-lock">🔒</span>
               <% } %>
             </div>
           <% }) %>

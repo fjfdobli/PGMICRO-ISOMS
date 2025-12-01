@@ -8,7 +8,6 @@ export default function ChatWindow({ conversation, isMinimized, onClose, onToggl
   const dispatch = useDispatch()
   const { activeConversations } = useSelector(state => state.chat || {})
   const currentUser = useSelector(state => state.auth?.user)
-  
   const conversationData = activeConversations?.[conversation.id]
   const messages = conversationData?.messages || []
   const loading = conversationData?.loading || false

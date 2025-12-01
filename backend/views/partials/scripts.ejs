@@ -150,10 +150,10 @@
 
           <div class="tab-content">
             <div class="tab-panel active" id="params-tab">
-              ${paramsHtml || '<div class="empty-state"><div class="empty-state-icon">📋</div><p>No parameters required for this endpoint</p></div>'}
+              ${paramsHtml || '<div class="empty-state"><div class="empty-state-icon"></div><p>No parameters required for this endpoint</p></div>'}
             </div>
             <div class="tab-panel" id="headers-tab">
-              ${headersHtml || '<div class="empty-state"><div class="empty-state-icon">📨</div><p>No special headers required</p></div>'}
+              ${headersHtml || '<div class="empty-state"><div class="empty-state-icon"></div><p>No special headers required</p></div>'}
             </div>
             <div class="tab-panel" id="body-tab">
               ${requestBodyHtml}
@@ -255,7 +255,6 @@
     });
   }
 
-  // Search functionality
   const searchInput = document.getElementById('searchInput');
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
@@ -267,7 +266,6 @@
     });
   }
 
-  // Handle back/forward navigation
   window.addEventListener('popstate', () => {
     location.reload();
   });

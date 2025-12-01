@@ -119,7 +119,7 @@ app.use((err, req, res, next) => {
 })
 
 app.use((req, res) => {
-  console.log(`404 - Route not found: ${req.method} ${req.originalUrl}`)
+  console.log(`Route not found: ${req.method} ${req.originalUrl}`)
   res.status(404).json({ 
     error: 'Route not found',
     path: req.originalUrl,
@@ -177,7 +177,7 @@ const initializeSettings = async () => {
       
       console.log(`Initialized ${settings.length} default settings`)
     } else {
-      console.log(`System settings loaded (${rows[0].count} settings)`)
+    //  console.log(`System settings loaded (${rows[0].count} settings)`)
     }
   } catch (error) {
     console.error('Failed to initialize settings:', error.message)
@@ -229,7 +229,7 @@ const startServer = async () => {
     
     server.listen(PORT, '0.0.0.0', () => {
       console.log(`Server ready on http://localhost:${PORT}`)
-      console.log(`Socket.IO ready for real-time connections`)
+     // console.log(`Socket.IO ready for real-time connections`)
     })
 
     server.on('error', (error) => {

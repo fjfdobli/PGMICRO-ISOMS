@@ -61,7 +61,7 @@ class EmailService {
                          process.env.SMTP_PASS.trim() !== ''
 
     if (!hasSystemSMTP) {
-      console.log('No SMTP configuration available - emails will be simulated')
+    // console.log('No SMTP configuration available - emails will be simulated')
       return null
     }
 
@@ -75,16 +75,16 @@ class EmailService {
     try {
       const transporterResult = this.getTransporter(adminEmailConfig)
       if (!transporterResult || !transporterResult.transporter) {
-        console.log('=== EMAIL SIMULATION (No SMTP configured) ===')
-        console.log('To:', to)
+     //   console.log('EMAIL SIMULATION (No SMTP configured)')
+     //   console.log('To:', to)
         if (cc) console.log('CC:', cc)
         if (bcc) console.log('BCC:', bcc)
-        console.log('Subject:', subject)
-        console.log('HTML Content:', htmlContent)
+      //  console.log('Subject:', subject)
+     //   console.log('HTML Content:', htmlContent)
         if (attachments && attachments.length > 0) {
-          console.log('Attachments:', attachments.map(a => a.filename).join(', '))
+      //    console.log('Attachments:', attachments.map(a => a.filename).join(', '))
         }
-        console.log('=== END EMAIL SIMULATION ===')
+     //   console.log('END EMAIL SIMULATION')
         return { 
           success: true, 
           messageId: 'simulated-' + Date.now(),
@@ -116,17 +116,17 @@ class EmailService {
       }
 
       const result = await transporter.sendMail(mailOptions)
-      console.log('Email sent successfully:', result.messageId)
+  //   console.log('Email sent successfully:', result.messageId)
       return { success: true, messageId: result.messageId }
     } catch (error) {
       console.error('Error sending email:', error)
-      console.log('=== EMAIL SIMULATION (Send failed) ===')
-      console.log('To:', to)
+   //   console.log('EMAIL SIMULATION (Send failed)')
+  //    console.log('To:', to)
       if (cc) console.log('CC:', cc)
       if (bcc) console.log('BCC:', bcc)
-      console.log('Subject:', subject)
-      console.log('Error:', error.message)
-      console.log('=== END EMAIL SIMULATION ===')
+  //    console.log('Subject:', subject)
+   //   console.log('Error:', error.message)
+   //   console.log('END EMAIL SIMULATION')
       
       return { 
         success: true, 

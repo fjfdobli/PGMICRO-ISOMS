@@ -126,7 +126,7 @@ const ContactAdminModal = ({ isOpen, onClose, adminEmail, userEmail, suspensionR
         Promise.all(filePromises)
           .then(fileData => {
             setAttachments(prev => [...prev, ...fileData])
-            console.log('Files attached:', fileData.map(f => f.name))
+         //   console.log('Files attached:', fileData.map(f => f.name))
           })
           .catch(error => {
             console.error('Error reading files:', error)
@@ -199,17 +199,17 @@ const ContactAdminModal = ({ isOpen, onClose, adminEmail, userEmail, suspensionR
         attachments: attachments.length > 0 ? attachments : undefined
       }
 
-      console.log('Sending email via API:', emailData)
+    //  console.log('Sending email via API:', emailData)
       
       const result = await authAPI.sendContactEmail(emailData)
       
-      console.log('Email sent successfully:', result)
+    //  console.log('Email sent successfully:', result)
       
       if (result.simulated) {
-        showToast(`⚠️ Email Simulated - ${result.message}`, 'warning')
-        console.log('⚠️ Email Simulated (Not Actually Sent)', result.message, result.details)
+        showToast(`Email Simulated - ${result.message}`, 'warning')
+     //   console.log('Email Simulated (Not Actually Sent)', result.message, result.details)
       } else {
-        showToast('✅ Email sent successfully!', 'success')
+        showToast('Email sent successfully!', 'success')
       }
       
       setTimeout(() => {
@@ -217,7 +217,7 @@ const ContactAdminModal = ({ isOpen, onClose, adminEmail, userEmail, suspensionR
       }, 2000)
     } catch (error) {
       console.error('Failed to send email:', error)
-      showToast(`❌ Failed to send email: ${error.message || 'Please try again.'}`, 'error')
+      showToast(`Failed to send email: ${error.message || 'Please try again.'}`, 'error')
       console.error(`Failed to send email: ${error.message || 'Please try again.'}`)
     } finally {
       setSending(false)
@@ -316,7 +316,6 @@ const ContactAdminModal = ({ isOpen, onClose, adminEmail, userEmail, suspensionR
               </div>
             )}
 
-            {/* Subject Field */}
             <div className="flex items-center px-4 py-3">
               <label className="text-sm font-medium text-gray-600 w-12">Subject</label>
               <input
